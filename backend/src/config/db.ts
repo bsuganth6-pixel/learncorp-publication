@@ -9,7 +9,7 @@ export async function connectDB(): Promise<void> {
   mongoose.set('strictQuery', true);
 
   try {
-    await mongoose.connect(uri);
+    await mongoose.connect(uri, { serverSelectionTimeoutMS: 10000 });
     console.log(`[db] MongoDB connected: ${mongoose.connection.host}`);
   } catch (err) {
     console.error('[db] MongoDB connection failed:', (err as Error).message);

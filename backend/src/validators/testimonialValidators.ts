@@ -1,10 +1,11 @@
 import { z } from 'zod';
+import { optionalHttpUrl } from './common';
 
 export const createTestimonialSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   designation: z.string().optional(),
   message: z.string().min(1, 'Message is required'),
-  photoUrl: z.string().url().optional().or(z.literal('')),
+  photoUrl: optionalHttpUrl,
   status: z.enum(['published', 'unpublished']).default('unpublished'),
 });
 

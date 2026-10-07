@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { BOOK_FORMATS } from '../models/Book';
-import { objectId } from './common';
+import { objectId, httpUrl } from './common';
 
 const reviewSchema = z.object({
   name: z.string().min(1),
@@ -19,7 +19,7 @@ export const createBookSchema = z.object({
   pages: z.coerce.number().int().positive().optional(),
   format: z.enum(BOOK_FORMATS),
   price: z.coerce.number().min(0),
-  coverImageUrl: z.string().url('Cover image is required'),
+  coverImageUrl: httpUrl,
   keywords: z.array(z.string()).default([]),
   publisher: z.string().optional(),
   tableOfContents: z.string().optional(),

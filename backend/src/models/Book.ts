@@ -47,7 +47,15 @@ const bookSchema = new Schema<IBook>(
   {
     title: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, lowercase: true, index: true },
-    authors: [{ type: Schema.Types.ObjectId, ref: 'Author', required: true }],
+    // `required: true` on the element type would not enforce a non-empty array,
+    // so the minimum is a validator on the array itself.
+    authors: {
+      type: [{ type: Schema.Types.ObjectId, ref: 'Author' }],
+      validate: {
+        validator: (v: Types.ObjectId[]) => Array.isArray(v) && v.length > 0,
+        message: 'A book needs at least one author',
+      },
+    },
     description: { type: String, required: true },
     isbn: { type: String, required: true, unique: true, trim: true },
     category: { type: String, required: true, index: true },
@@ -69,13 +77,14 @@ const bookSchema = new Schema<IBook>(
 
 bookSchema.index({ title: 'text', keywords: 'text', description: 'text' });
 
+export function computeRatingsAvg(reviews: Pick<IReview, 'rating'>[]): number {
+  if (!reviews || reviews.length === 0) return 0;
+  const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+  return Math.round((sum / reviews.length) * 10) / 10;
+}
+
 bookSchema.pre('save', function (next) {
-  if (this.reviews && this.reviews.length > 0) {
-    const sum = this.reviews.reduce((acc, r) => acc + r.rating, 0);
-    this.ratingsAvg = Math.round((sum / this.reviews.length) * 10) / 10;
-  } else {
-    this.ratingsAvg = 0;
-  }
+  this.ratingsAvg = computeRatingsAvg(this.reviews);
   next();
 });
 

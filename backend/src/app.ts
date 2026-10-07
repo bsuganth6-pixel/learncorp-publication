@@ -10,7 +10,12 @@ import { apiLimiter } from './middleware/rateLimiter';
 
 const app: Application = express();
 
-app.set('trust proxy', 1);
+// Number of reverse proxies in front of this app. It decides which entry of
+// X-Forwarded-For is treated as the client IP, which the rate limiters key on.
+// Too low behind extra proxies => every visitor shares one IP (and one limit);
+// too high => clients can spoof their IP. See docs/DEPLOYMENT.md.
+const trustProxyHops = Number(process.env.TRUST_PROXY_HOPS ?? 1);
+app.set('trust proxy', Number.isInteger(trustProxyHops) && trustProxyHops >= 0 ? trustProxyHops : 1);
 
 app.use(helmet());
 app.use(

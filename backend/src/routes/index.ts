@@ -6,6 +6,7 @@ import manuscriptRoutes from './manuscriptRoutes';
 import contactRoutes from './contactRoutes';
 import testimonialRoutes from './testimonialRoutes';
 import dashboardRoutes from './dashboardRoutes';
+import statsRoutes from './statsRoutes';
 
 const router = Router();
 
@@ -16,5 +17,6 @@ router.use('/manuscripts', manuscriptRoutes);
 router.use('/contact', contactRoutes);
 router.use('/testimonials', testimonialRoutes);
 router.use('/dashboard', dashboardRoutes);
+router.use('/stats', statsRoutes);
 
 export default router;

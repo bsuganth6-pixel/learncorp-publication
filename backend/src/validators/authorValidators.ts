@@ -1,19 +1,20 @@
 import { z } from 'zod';
+import { optionalHttpUrl } from './common';
 
 const socialLinksSchema = z
   .object({
-    website: z.string().url().optional().or(z.literal('')),
-    twitter: z.string().url().optional().or(z.literal('')),
-    linkedin: z.string().url().optional().or(z.literal('')),
-    instagram: z.string().url().optional().or(z.literal('')),
-    facebook: z.string().url().optional().or(z.literal('')),
+    website: optionalHttpUrl,
+    twitter: optionalHttpUrl,
+    linkedin: optionalHttpUrl,
+    instagram: optionalHttpUrl,
+    facebook: optionalHttpUrl,
   })
   .optional();
 
 export const createAuthorSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   bio: z.string().optional(),
-  photoUrl: z.string().url().optional().or(z.literal('')),
+  photoUrl: optionalHttpUrl,
   qualifications: z.string().optional(),
   socialLinks: socialLinksSchema,
 });
