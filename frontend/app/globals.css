@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background-color: theme('colors.paper');
+  color: theme('colors.ink.DEFAULT');
+}
+
+::selection {
+  background-color: theme('colors.gold.DEFAULT');
+  color: white;
+}
+
+.rule {
+  border-color: theme('colors.rule');
+}
+
+.container-page {
+  @apply mx-auto w-full max-w-content px-5 sm:px-8;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-sm px-6 py-3 text-sm font-medium tracking-wide transition-colors;
+}
+.btn-primary {
+  @apply btn bg-ink text-paper hover:bg-ink/90;
+}
+.btn-gold {
+  @apply btn bg-gold text-white hover:bg-gold-dark;
+}
+.btn-outline {
+  @apply btn border border-ink/20 text-ink hover:border-ink hover:bg-ink hover:text-paper;
+}
+.btn-outline-light {
+  @apply btn border border-paper/40 text-paper hover:bg-paper hover:text-ink;
+}
+
+.section-label {
+  @apply font-sans text-xs font-semibold uppercase tracking-[0.2em] text-gold;
+}
+
+.field-label {
+  @apply mb-1.5 block text-sm font-medium text-ink;
+}
+.field-input {
+  @apply w-full rounded-sm border border-rule bg-surface px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-soft/50 focus:border-ink focus:outline-none focus:ring-1 focus:ring-ink;
+}
+.field-error {
+  @apply mt-1 text-xs text-danger;
+}
