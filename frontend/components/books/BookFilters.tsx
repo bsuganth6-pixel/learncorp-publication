@@ -33,6 +33,7 @@ export default function BookFilters() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search title, keyword…"
+          aria-label="Search books"
           className="field-input pl-9"
         />
       </form>
@@ -42,6 +43,7 @@ export default function BookFilters() {
           className="field-input w-auto"
           value={searchParams.get('category') || ''}
           onChange={(e) => update('category', e.target.value)}
+          aria-label="Filter by category"
         >
           <option value="">All categories</option>
           {BOOK_CATEGORIES.map((c) => (
@@ -53,6 +55,7 @@ export default function BookFilters() {
           className="field-input w-auto"
           value={searchParams.get('format') || ''}
           onChange={(e) => update('format', e.target.value)}
+          aria-label="Filter by format"
         >
           <option value="">All formats</option>
           {BOOK_FORMATS.map((f) => (
@@ -64,6 +67,7 @@ export default function BookFilters() {
           className="field-input w-auto"
           value={searchParams.get('sort') || 'newest'}
           onChange={(e) => update('sort', e.target.value)}
+          aria-label="Sort books"
         >
           {SORT_OPTIONS.map((s) => (
             <option key={s.value} value={s.value}>{s.label}</option>

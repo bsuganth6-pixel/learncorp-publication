@@ -40,7 +40,7 @@ export default function AdminManuscriptsPage() {
       <PageHeader title="Manuscripts" description="Review submissions and update their status." />
 
       <div className="mb-5">
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="field-input w-auto">
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Filter by status" className="field-input w-auto">
           <option value="">All statuses</option>
           {MANUSCRIPT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
@@ -75,6 +75,7 @@ export default function AdminManuscriptsPage() {
                       value={m.status}
                       disabled={updatingId === m._id}
                       onChange={(e) => onStatusChange(m._id, e.target.value)}
+                      aria-label={`Update status for ${m.bookTitle}`}
                       className="field-input w-auto py-1.5 text-xs"
                     >
                       {MANUSCRIPT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -83,6 +84,7 @@ export default function AdminManuscriptsPage() {
                   <td className="px-4 py-3 text-right">
                     <Link
                       href={`/admin/dashboard/manuscripts/${m._id}`}
+                      aria-label={`View submission: ${m.bookTitle}`}
                       className="inline-flex h-8 w-8 items-center justify-center rounded-sm border border-rule text-ink-soft hover:border-ink hover:text-ink"
                     >
                       <Eye size={14} />

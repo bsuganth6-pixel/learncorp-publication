@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
 import { login, ApiClientError } from '@/lib/api-client';
+import { safeAdminRedirect } from '@/lib/safe-redirect';
 
 function LoginForm() {
   const router = useRouter();
@@ -20,7 +21,7 @@ function LoginForm() {
     setLoading(true);
     try {
       await login(email, password);
-      router.replace(searchParams.get('next') || '/admin/dashboard');
+      router.replace(safeAdminRedirect(searchParams.get('next')));
       router.refresh();
     } catch (err) {
       setError(err instanceof ApiClientError ? err.message : 'Unable to log in right now.');

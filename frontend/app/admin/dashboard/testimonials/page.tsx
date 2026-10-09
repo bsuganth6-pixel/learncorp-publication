@@ -53,10 +53,10 @@ export default function AdminTestimonialsPage() {
                 <p className="mt-2 text-sm text-ink-soft">&ldquo;{t.message}&rdquo;</p>
               </div>
               <div className="flex gap-2">
-                <Link href={`/admin/dashboard/testimonials/${t._id}/edit`} className="flex h-8 w-8 items-center justify-center rounded-sm border border-rule text-ink-soft hover:border-ink hover:text-ink">
+                <Link href={`/admin/dashboard/testimonials/${t._id}/edit`} aria-label={`Edit testimonial from ${t.name}`} className="flex h-8 w-8 items-center justify-center rounded-sm border border-rule text-ink-soft hover:border-ink hover:text-ink">
                   <Pencil size={14} />
                 </Link>
-                <button type="button" onClick={() => onDelete(t._id)} disabled={deletingId === t._id} className="flex h-8 w-8 items-center justify-center rounded-sm border border-rule text-danger hover:border-danger">
+                <button type="button" onClick={() => onDelete(t._id)} disabled={deletingId === t._id} aria-label={`Delete testimonial from ${t.name}`} className="flex h-8 w-8 items-center justify-center rounded-sm border border-rule text-danger hover:border-danger">
                   {deletingId === t._id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
                 </button>
               </div>

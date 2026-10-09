@@ -57,13 +57,14 @@ export default function AdminAuthorsPage() {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-ink">{author.name}</p>
               </div>
-              <Link href={`/admin/dashboard/authors/${author._id}/edit`} className="flex h-8 w-8 items-center justify-center rounded-sm border border-rule text-ink-soft hover:border-ink hover:text-ink">
+              <Link href={`/admin/dashboard/authors/${author._id}/edit`} aria-label={`Edit ${author.name}`} className="flex h-8 w-8 items-center justify-center rounded-sm border border-rule text-ink-soft hover:border-ink hover:text-ink">
                 <Pencil size={14} />
               </Link>
               <button
                 type="button"
                 onClick={() => onDelete(author._id, author.name)}
                 disabled={deletingId === author._id}
+                aria-label={`Delete ${author.name}`}
                 className="flex h-8 w-8 items-center justify-center rounded-sm border border-rule text-danger hover:border-danger"
               >
                 {deletingId === author._id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}

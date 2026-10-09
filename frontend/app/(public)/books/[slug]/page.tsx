@@ -15,8 +15,9 @@ export async function generateStaticParams() {
   return books.map((book) => ({ slug: book.slug }));
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const result = await getBookBySlug(params.slug);
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await props.params;
+  const result = await getBookBySlug(slug);
   if (!result) return { title: 'Book not found' };
   const { data: book } = result;
   return {
@@ -26,10 +27,39 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default async function BookDetailsPage({ params }: { params: { slug: string } }) {
-  const result = await getBookBySlug(params.slug);
+const SCHEMA_FORMATS: Record<string, string> = {
+  Paperback: 'https://schema.org/Paperback',
+  Hardcover: 'https://schema.org/Hardcover',
+  eBook: 'https://schema.org/EBook',
+  PDF: 'https://schema.org/EBook',
+  Audiobook: 'https://schema.org/AudiobookFormat',
+};
+
+export default async function BookDetailsPage(props: { params: Promise<{ slug: string }> }) {
+  const { slug } = await props.params;
+  const result = await getBookBySlug(slug);
   if (!result) notFound();
   const { data: book, related } = result;
+
+  // No availability/stock claim: this site has no inventory or checkout.
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Book',
+    name: book.title,
+    author: book.authors.map((a) => ({ '@type': 'Person', name: a.name })),
+    isbn: book.isbn,
+    inLanguage: book.language,
+    ...(book.pages ? { numberOfPages: book.pages } : {}),
+    ...(book.publicationDate ? { datePublished: book.publicationDate.slice(0, 10) } : {}),
+    bookFormat: SCHEMA_FORMATS[book.format],
+    publisher: { '@type': 'Organization', name: book.publisher },
+    image: book.coverImageUrl,
+    description: book.description,
+    offers: { '@type': 'Offer', price: book.price, priceCurrency: 'INR' },
+    ...(book.reviews.length > 0
+      ? { aggregateRating: { '@type': 'AggregateRating', ratingValue: book.ratingsAvg, reviewCount: book.reviews.length } }
+      : {}),
+  };
 
   const metaRows = [
     { icon: Hash, label: 'ISBN', value: book.isbn },
@@ -41,6 +71,11 @@ export default async function BookDetailsPage({ params }: { params: { slug: stri
 
   return (
     <div className="container-page py-12 sm:py-16">
+      {/* '<' is escaped so book text can never close the script tag (JSON-LD injection). */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+      />
       <div className="grid gap-10 lg:grid-cols-[380px_1fr] lg:gap-14">
         <div>
           <div className="relative aspect-[3/4] w-full overflow-hidden rounded-sm border border-rule bg-ink/5 shadow-card">

@@ -30,14 +30,14 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 bg-paper">
       <div className="bg-ink py-2 text-center text-xs font-medium tracking-wide text-paper/80">
-        New titles added every month — <Link href="/publish" className="text-gold-light underline underline-offset-2">authors, submit your manuscript</Link>
+        Writing a book? <Link href="/publish" className="text-gold-light underline underline-offset-2">Submit your manuscript for editorial review</Link>
       </div>
 
       <div className="border-b border-rule bg-paper/95 backdrop-blur">
         <div className="container-page flex h-16 items-center justify-between gap-6 sm:h-20">
           <Link href="/" className="flex shrink-0 items-center gap-2.5">
             <span className="relative h-9 w-9 overflow-hidden rounded-sm sm:h-10 sm:w-10">
-              <Image src="/logo.png" alt="LearnCorp Publication" fill className="object-contain" priority />
+              <Image src="/logo.png" alt="" fill className="object-contain" priority />
             </span>
             <span className="font-display text-lg font-medium leading-none text-ink sm:text-xl">
               LearnCorp <span className="text-gold">Publication</span>

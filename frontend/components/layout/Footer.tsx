@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Mail, Phone, MapPin } from 'lucide-react';
+import { siteConfig } from '@/lib/site-config';
 
 const COLUMNS = [
   {
@@ -53,20 +54,24 @@ export default function Footer() {
         <div>
           <p className="section-label text-gold-light">Contact</p>
           <ul className="mt-4 space-y-3 text-sm text-paper/70">
-            <li className="flex items-start gap-2">
-              <MapPin size={16} className="mt-0.5 shrink-0 text-gold-light" />
-              Tiruvallur, Tamil Nadu, India
-            </li>
-            <li className="flex items-center gap-2">
-              <Mail size={16} className="shrink-0 text-gold-light" />
-              <a href="mailto:hello@learncorppublication.com" className="hover:text-paper">
-                hello@learncorppublication.com
-              </a>
-            </li>
-            <li className="flex items-center gap-2">
-              <Phone size={16} className="shrink-0 text-gold-light" />
-              <a href="tel:+910000000000" className="hover:text-paper">+91 00000 00000</a>
-            </li>
+            {siteConfig.contact.address && (
+              <li className="flex items-start gap-2">
+                <MapPin size={16} className="mt-0.5 shrink-0 text-gold-light" aria-hidden="true" />
+                {siteConfig.contact.address}
+              </li>
+            )}
+            {siteConfig.contact.email && (
+              <li className="flex items-center gap-2">
+                <Mail size={16} className="shrink-0 text-gold-light" aria-hidden="true" />
+                <a href={`mailto:${siteConfig.contact.email}`} className="hover:text-paper">{siteConfig.contact.email}</a>
+              </li>
+            )}
+            {siteConfig.contact.phone && (
+              <li className="flex items-center gap-2">
+                <Phone size={16} className="shrink-0 text-gold-light" aria-hidden="true" />
+                <a href={`tel:${siteConfig.contact.phone.replace(/[^+\d]/g, '')}`} className="hover:text-paper">{siteConfig.contact.phone}</a>
+              </li>
+            )}
           </ul>
         </div>
       </div>

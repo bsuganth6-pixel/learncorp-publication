@@ -78,6 +78,7 @@ export default function AdminBooksPage() {
                     <div className="flex justify-end gap-2">
                       <Link
                         href={`/admin/dashboard/books/${book._id}/edit`}
+                        aria-label={`Edit ${book.title}`}
                         className="flex h-8 w-8 items-center justify-center rounded-sm border border-rule text-ink-soft hover:border-ink hover:text-ink"
                       >
                         <Pencil size={14} />
@@ -86,6 +87,7 @@ export default function AdminBooksPage() {
                         type="button"
                         onClick={() => onDelete(book._id, book.title)}
                         disabled={deletingId === book._id}
+                        aria-label={`Delete ${book.title}`}
                         className="flex h-8 w-8 items-center justify-center rounded-sm border border-rule text-danger hover:border-danger"
                       >
                         {deletingId === book._id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}

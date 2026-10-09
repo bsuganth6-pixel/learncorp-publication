@@ -11,11 +11,10 @@ export const metadata: Metadata = {
   description: 'Meet the authors published by LearnCorp Publication.',
 };
 
-export default async function AuthorsPage({
-  searchParams,
-}: {
-  searchParams: Record<string, string | undefined>;
+export default async function AuthorsPage(props: {
+  searchParams: Promise<Record<string, string | undefined>>;
 }) {
+  const searchParams = await props.searchParams;
   const page = Number(searchParams.page) || 1;
   const { data: authors, pagination } = await getAuthors({ page, limit: 12 });
 

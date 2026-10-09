@@ -2,7 +2,12 @@ import type {
   Author, Book, ContactMessage, Manuscript, Paginated, Testimonial, AdminUser,
 } from './types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+// Browser: same-origin /api (proxied to the API by next.config.js, so the
+// session cookie is first-party). Server (SSR/ISR/sitemap): call the API directly.
+const API_URL =
+  typeof window === 'undefined'
+    ? `${(process.env.API_ORIGIN || 'http://localhost:5000').replace(/\/$/, '')}/api`
+    : '/api';
 
 export class ApiClientError extends Error {
   status: number;
@@ -16,22 +21,40 @@ export class ApiClientError extends Error {
 
 interface FetchOptions extends RequestInit {
   revalidate?: number | false;
+  /** Abort the request after this many ms (default 10s; uploads pass more). */
+  timeoutMs?: number;
 }
 
 // Low-level request used by every helper below. Always sends cookies, since
 // admin calls rely on the httpOnly session cookie rather than a bearer token.
 async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T> {
-  const { revalidate, ...init } = options;
+  const { revalidate, timeoutMs = 10_000, ...init } = options;
 
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
-    credentials: 'include',
-    headers: {
-      ...(init.body && !(init.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
-      ...init.headers,
-    },
-    ...(revalidate !== undefined ? { next: { revalidate: revalidate as number | false } } : {}),
-  });
+  // AbortController + setTimeout rather than AbortSignal.timeout(): the latter
+  // is missing on older Safari, which would break every request there.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...init,
+      signal: controller.signal,
+      credentials: 'include',
+      headers: {
+        ...(init.body && !(init.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
+        ...init.headers,
+      },
+      ...(revalidate !== undefined ? { next: { revalidate: revalidate as number | false } } : {}),
+    });
+  } catch (err) {
+    if ((err as Error).name === 'AbortError') {
+      throw new ApiClientError(408, 'The server took too long to respond. Please try again.');
+    }
+    throw new ApiClientError(0, 'Could not reach the server. Check your connection and try again.');
+  } finally {
+    clearTimeout(timer);
+  }
 
   let body: unknown = null;
   try {
@@ -51,15 +74,29 @@ async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T>
   return body as T;
 }
 
-// ---- Resilient public reads: used in Server Components for SSG/ISR pages.
-// If the API is unreachable at build/request time we degrade to an empty
-// result instead of crashing the page (and, on this machine, `next build`).
-async function safe<T>(fn: () => Promise<T>, fallback: T, label: string): Promise<T> {
+// ---- Public reads used by Server Components (SSG/ISR) ----
+// A genuine 404 from the API is an expected answer, not a failure. Anything
+// else is handled differently at build time vs. run time:
+//  - build: an unreachable/cold API (e.g. a sleeping free-tier host) must not fail
+//    the deploy, so degrade to the fallback; ISR fills the pages in afterwards.
+//  - runtime: rethrow. Next.js ISR then keeps serving the last good page instead of
+//    caching an empty list / false 404 for the revalidate window, and a cold page
+//    shows the error boundary rather than lying about the content.
+async function safe<T>(
+  fn: () => Promise<T>,
+  fallback: T,
+  label: string,
+  opts: { missingIsFallback?: boolean } = {}
+): Promise<T> {
   try {
     return await fn();
   } catch (err) {
-    console.warn(`[api] ${label} failed, using fallback:`, (err as Error).message);
-    return fallback;
+    if (opts.missingIsFallback && err instanceof ApiClientError && err.status === 404) return fallback;
+    if (process.env.NEXT_PHASE === 'phase-production-build') {
+      console.warn(`[api] ${label} failed during build, using fallback:`, (err as Error).message);
+      return fallback;
+    }
+    throw err;
   }
 }
 
@@ -89,7 +126,8 @@ export const getBookBySlug = (slug: string, revalidate = 120) =>
   safe(
     () => apiFetch<{ data: Book; related: Book[] }>(`/books/${slug}`, { revalidate }),
     null as { data: Book; related: Book[] } | null,
-    'getBookBySlug'
+    'getBookBySlug',
+    { missingIsFallback: true }
   );
 
 export const getAuthors = (query: { page?: number; limit?: number; search?: string } = {}, revalidate = 300) =>
@@ -103,7 +141,15 @@ export const getAuthorBySlug = (slug: string, revalidate = 300) =>
   safe(
     () => apiFetch<{ data: Author; books: Book[] }>(`/authors/${slug}`, { revalidate }),
     null as { data: Author; books: Book[] } | null,
-    'getAuthorBySlug'
+    'getAuthorBySlug',
+    { missingIsFallback: true }
+  );
+
+export const getPublicStats = (revalidate = 300) =>
+  safe(
+    () => apiFetch<{ data: { publishedBooks: number; authors: number; categories: number } }>(`/stats`, { revalidate }),
+    null as { data: { publishedBooks: number; authors: number; categories: number } } | null,
+    'getPublicStats'
   );
 
 export const getTestimonials = (revalidate = 300) =>
@@ -126,6 +172,7 @@ export const submitManuscript = (formData: FormData) =>
   apiFetch<{ success: boolean; message: string; data: { id: string; status: string } }>(`/manuscripts`, {
     method: 'POST',
     body: formData,
+    timeoutMs: 120_000,
   });
 
 // ---- Admin reads (client-side, called from dashboard components) ----
@@ -170,6 +217,12 @@ export const updateBook = (id: string, payload: Record<string, unknown>) =>
 
 export const deleteBook = (id: string) => apiFetch<{ success: boolean }>(`/books/${id}`, { method: 'DELETE' });
 
+export const addBookReview = (id: string, payload: { name: string; rating: number; comment: string }) =>
+  apiFetch<{ data: Book }>(`/books/${id}/reviews`, { method: 'POST', body: JSON.stringify(payload) });
+
+export const deleteBookReview = (id: string, reviewIndex: number) =>
+  apiFetch<{ data: Book }>(`/books/${id}/reviews/${reviewIndex}`, { method: 'DELETE' });
+
 export const createAuthor = (payload: Record<string, unknown>) =>
   apiFetch<{ data: Author }>(`/authors`, { method: 'POST', body: JSON.stringify(payload) });
 
@@ -199,5 +252,5 @@ export const deleteTestimonial = (id: string) =>
 export const uploadImage = (file: File) => {
   const formData = new FormData();
   formData.append('image', file);
-  return apiFetch<{ url: string }>(`/manuscripts/uploads/image`, { method: 'POST', body: formData });
+  return apiFetch<{ url: string }>(`/manuscripts/uploads/image`, { method: 'POST', body: formData, timeoutMs: 60_000 });
 };

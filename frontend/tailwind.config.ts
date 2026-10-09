@@ -11,10 +11,12 @@ const config: Config = {
         },
         paper: '#F7F6F3',
         surface: '#FFFFFF',
+        // DEFAULT/dark are tuned for contrast: gold text on paper/white is 5.2-5.6:1 and
+        // white text on the gold buttons 5.6:1 (WCAG AA needs 4.5:1). `light` is for dark backgrounds.
         gold: {
-          DEFAULT: '#A9781F',
+          DEFAULT: '#8A6018',
           light: '#C99A3F',
-          dark: '#8A6018',
+          dark: '#6F4C12',
         },
         rule: '#E4E0D6',
         success: '#3F7D5C',

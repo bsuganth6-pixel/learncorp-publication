@@ -15,20 +15,24 @@ export async function generateStaticParams() {
   return authors.map((author) => ({ slug: author.slug }));
 }
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const result = await getAuthorBySlug(params.slug);
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await props.params;
+  const result = await getAuthorBySlug(slug);
   if (!result) return { title: 'Author not found' };
   return { title: result.data.name, description: result.data.bio?.slice(0, 155) };
 }
 
 const SOCIAL_ICONS = { website: Globe, twitter: Twitter, linkedin: Linkedin, instagram: Instagram, facebook: Facebook };
+const SOCIAL_LABELS: Record<string, string> = { website: 'Website', twitter: 'X / Twitter', linkedin: 'LinkedIn', instagram: 'Instagram', facebook: 'Facebook' };
 
-export default async function AuthorProfilePage({ params }: { params: { slug: string } }) {
-  const result = await getAuthorBySlug(params.slug);
+export default async function AuthorProfilePage(props: { params: Promise<{ slug: string }> }) {
+  const { slug } = await props.params;
+  const result = await getAuthorBySlug(slug);
   if (!result) notFound();
   const { data: author, books } = result;
 
-  const socialEntries = Object.entries(author.socialLinks || {}).filter(([, url]) => url);
+  // Only http(s) links are rendered, whatever is stored (a javascript: href would be script execution on click).
+  const socialEntries = Object.entries(author.socialLinks || {}).filter(([, url]) => typeof url === 'string' && /^https?:\/\//i.test(url));
 
   return (
     <div className="container-page py-12 sm:py-16">
@@ -51,7 +55,7 @@ export default async function AuthorProfilePage({ params }: { params: { slug: st
             {socialEntries.map(([key, url]) => {
               const Icon = SOCIAL_ICONS[key as keyof typeof SOCIAL_ICONS] || Globe;
               return (
-                <a key={key} href={url} target="_blank" rel="noopener noreferrer" className="text-ink-soft hover:text-gold">
+                <a key={key} href={url} target="_blank" rel="noopener noreferrer" aria-label={`${author.name} on ${SOCIAL_LABELS[key] || key}`} className="text-ink-soft hover:text-gold">
                   <Icon size={18} />
                 </a>
               );

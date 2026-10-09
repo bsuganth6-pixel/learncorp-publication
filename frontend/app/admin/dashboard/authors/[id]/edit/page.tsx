@@ -1,13 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { getAdminAuthors } from '@/lib/api-client';
 import type { Author } from '@/lib/types';
 import PageHeader from '@/components/admin/PageHeader';
 import AuthorForm from '@/components/admin/AuthorForm';
 
-export default function EditAuthorPage({ params }: { params: { id: string } }) {
+export default function EditAuthorPage(props: { params: Promise<{ id: string }> }) {
+  const { id } = use(props.params);
   const [author, setAuthor] = useState<Author | null>(null);
   const [error, setError] = useState('');
 
@@ -16,12 +17,12 @@ export default function EditAuthorPage({ params }: { params: { id: string } }) {
     // avoids needing a separate admin-by-id endpoint for this resource.
     getAdminAuthors({ page: 1 })
       .then((res) => {
-        const match = res.data.find((a) => a._id === params.id);
+        const match = res.data.find((a) => a._id === id);
         if (!match) throw new Error('Not found');
         setAuthor(match);
       })
       .catch(() => setError('Could not load this author'));
-  }, [params.id]);
+  }, [id]);
 
   return (
     <div>

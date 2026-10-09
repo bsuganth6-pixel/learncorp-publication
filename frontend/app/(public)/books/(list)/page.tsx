@@ -13,10 +13,11 @@ export const metadata: Metadata = {
 };
 
 interface PageProps {
-  searchParams: Record<string, string | undefined>;
+  searchParams: Promise<Record<string, string | undefined>>;
 }
 
-export default async function BooksPage({ searchParams }: PageProps) {
+export default async function BooksPage(props: PageProps) {
+  const searchParams = await props.searchParams;
   const page = Number(searchParams.page) || 1;
   const { data: books, pagination } = await getBooks({
     page,

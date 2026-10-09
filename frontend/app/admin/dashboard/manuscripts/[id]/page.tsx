@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { Loader2, Download } from 'lucide-react';
 import { getManuscriptById, getManuscriptFileUrl, ApiClientError } from '@/lib/api-client';
 import type { Manuscript } from '@/lib/types';
@@ -19,19 +19,20 @@ const FIELDS: { key: keyof Manuscript; label: string }[] = [
   { key: 'previousExperience', label: 'Previous Experience' },
 ];
 
-export default function ManuscriptDetailPage({ params }: { params: { id: string } }) {
+export default function ManuscriptDetailPage(props: { params: Promise<{ id: string }> }) {
+  const { id } = use(props.params);
   const [manuscript, setManuscript] = useState<Manuscript | null>(null);
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState<'manuscript' | 'cover' | null>(null);
 
   useEffect(() => {
-    getManuscriptById(params.id).then((res) => setManuscript(res.data)).catch(() => setError('Could not load this manuscript'));
-  }, [params.id]);
+    getManuscriptById(id).then((res) => setManuscript(res.data)).catch(() => setError('Could not load this manuscript'));
+  }, [id]);
 
   const onDownload = async (file: 'manuscript' | 'cover') => {
     setDownloading(file);
     try {
-      const { url } = await getManuscriptFileUrl(params.id, file);
+      const { url } = await getManuscriptFileUrl(id, file);
       window.open(url, '_blank', 'noopener,noreferrer');
     } catch (err) {
       alert(err instanceof ApiClientError ? err.message : 'Could not generate a download link');

@@ -1,20 +1,36 @@
 import type { Metadata } from 'next';
-import { Mail, Phone, MapPin, Clock, MessageCircle } from 'lucide-react';
+import { Mail, Phone, MapPin, Clock, MessageCircle, Facebook, Instagram, Linkedin, Twitter } from 'lucide-react';
 import ContactForm from '@/components/forms/ContactForm';
 import SectionHeading from '@/components/ui/SectionHeading';
+import { siteConfig } from '@/lib/site-config';
 
 export const metadata: Metadata = {
   title: 'Contact',
-  description: 'Get in touch with LearnCorp Publication — email, phone, WhatsApp, or the form below.',
+  description: `Get in touch with ${siteConfig.name} — by form, email, phone, or WhatsApp.`,
 };
 
+const { contact, social } = siteConfig;
+
+// Rows with an empty value are skipped rather than showing invented details.
 const DETAILS = [
-  { icon: MapPin, label: 'Address', value: 'Tiruvallur, Tamil Nadu, India' },
-  { icon: Mail, label: 'Email', value: 'hello@learncorppublication.com', href: 'mailto:hello@learncorppublication.com' },
-  { icon: Phone, label: 'Phone', value: '+91 00000 00000', href: 'tel:+910000000000' },
-  { icon: MessageCircle, label: 'WhatsApp', value: '+91 00000 00000', href: 'https://wa.me/910000000000' },
-  { icon: Clock, label: 'Business Hours', value: 'Mon–Sat, 10:00 AM – 6:00 PM IST' },
-];
+  { icon: MapPin, label: 'Address', value: contact.address, href: '' },
+  { icon: Mail, label: 'Email', value: contact.email, href: contact.email ? `mailto:${contact.email}` : '' },
+  { icon: Phone, label: 'Phone', value: contact.phone, href: contact.phone ? `tel:${contact.phone.replace(/[^+\d]/g, '')}` : '' },
+  {
+    icon: MessageCircle,
+    label: 'WhatsApp',
+    value: contact.whatsapp ? `+${contact.whatsapp}` : '',
+    href: contact.whatsapp ? `https://wa.me/${contact.whatsapp}` : '',
+  },
+  { icon: Clock, label: 'Business Hours', value: contact.hours, href: '' },
+].filter((d) => d.value);
+
+const SOCIALS = [
+  { icon: Facebook, label: 'Facebook', href: social.facebook },
+  { icon: Instagram, label: 'Instagram', href: social.instagram },
+  { icon: Linkedin, label: 'LinkedIn', href: social.linkedin },
+  { icon: Twitter, label: 'X / Twitter', href: social.twitter },
+].filter((s) => s.href);
 
 export default function ContactPage() {
   return (
@@ -23,10 +39,11 @@ export default function ContactPage() {
 
       <div className="mt-12 grid gap-12 lg:grid-cols-[1fr_1.3fr]">
         <div>
-          <ul className="space-y-5">
+          <p className="text-sm font-medium text-ink">{siteConfig.name}</p>
+          <ul className="mt-4 space-y-5">
             {DETAILS.map(({ icon: Icon, label, value, href }) => (
               <li key={label} className="flex items-start gap-3">
-                <Icon size={18} className="mt-0.5 shrink-0 text-gold" />
+                <Icon size={18} className="mt-0.5 shrink-0 text-gold" aria-hidden="true" />
                 <div>
                   <p className="text-xs uppercase tracking-wide text-ink-soft">{label}</p>
                   {href ? (
@@ -39,14 +56,21 @@ export default function ContactPage() {
             ))}
           </ul>
 
-          <div className="mt-8 overflow-hidden rounded-sm border border-rule">
-            <iframe
-              title="Location map"
-              src="https://www.openstreetmap.org/export/embed.html?bbox=79.85%2C13.10%2C79.95%2C13.18&layer=mapnik"
-              className="h-56 w-full"
-              loading="lazy"
-            />
-          </div>
+          {SOCIALS.length > 0 && (
+            <div className="mt-6 flex gap-4">
+              {SOCIALS.map(({ icon: Icon, label, href }) => (
+                <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className="text-ink-soft hover:text-gold">
+                  <Icon size={18} />
+                </a>
+              ))}
+            </div>
+          )}
+
+          {contact.mapEmbedUrl && (
+            <div className="mt-8 overflow-hidden rounded-sm border border-rule">
+              <iframe title="Location map" src={contact.mapEmbedUrl} className="h-56 w-full" loading="lazy" referrerPolicy="no-referrer" />
+            </div>
+          )}
         </div>
 
         <div className="rounded-sm border border-rule bg-surface p-6 shadow-card sm:p-8">
