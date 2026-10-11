@@ -22,6 +22,7 @@ export interface AuthorRef {
   name: string;
   slug: string;
   photoUrl?: string;
+  bio?: string;
 }
 
 export interface Review {

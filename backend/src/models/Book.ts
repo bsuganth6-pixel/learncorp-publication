@@ -75,8 +75,6 @@ const bookSchema = new Schema<IBook>(
   { timestamps: true }
 );
 
-bookSchema.index({ title: 'text', keywords: 'text', description: 'text' });
-
 export function computeRatingsAvg(reviews: Pick<IReview, 'rating'>[]): number {
   if (!reviews || reviews.length === 0) return 0;
   const sum = reviews.reduce((acc, r) => acc + r.rating, 0);

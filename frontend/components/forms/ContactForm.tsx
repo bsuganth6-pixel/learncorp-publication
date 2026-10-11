@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -20,9 +21,10 @@ type FormValues = z.infer<typeof schema>;
 export default function ContactForm() {
   const [submitted, setSubmitted] = useState(false);
   const [serverError, setServerError] = useState('');
+  const prefilledSubject = (useSearchParams().get('subject') || '').slice(0, 150);
   const {
     register, handleSubmit, formState: { errors, isSubmitting }, reset,
-  } = useForm<FormValues>({ resolver: zodResolver(schema) });
+  } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: { subject: prefilledSubject } });
 
   const onSubmit = async (values: FormValues) => {
     setServerError('');

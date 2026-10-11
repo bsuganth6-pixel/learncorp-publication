@@ -39,7 +39,7 @@ export const bookQuerySchema = z.object({
   minPrice: z.coerce.number().min(0).optional(),
   maxPrice: z.coerce.number().min(0).optional(),
   year: z.coerce.number().int().optional(),
-  search: z.string().optional(),
+  search: z.string().trim().max(100).optional(),
   status: z.enum(['draft', 'published']).optional(),
   sort: z.enum(['newest', 'oldest', 'price-asc', 'price-desc', 'title']).default('newest'),
 });

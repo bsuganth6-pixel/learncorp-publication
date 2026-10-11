@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { FilterQuery } from 'mongoose';
 import { Book, IBook } from '../models/Book';
+import { Author } from '../models/Author';
 import { ApiError } from '../utils/ApiError';
 import { asyncHandler } from '../utils/asyncHandler';
 import { toSlug } from '../utils/slug';
@@ -45,7 +46,14 @@ async function queryBooks(req: Request, res: Response, forcedStatus: 'published'
     };
   }
   if (search) {
-    filter.$text = { $search: search };
+    // Case-insensitive "contains" over the fields a reader would search by. The
+    // term is escaped so it is matched literally (no regex injection / ReDoS).
+    const rx = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const authorIds = (await Author.find({ name: rx }).select('_id')).map((a) => a._id);
+    filter.$or = [
+      { title: rx }, { isbn: rx }, { category: rx }, { keywords: rx }, { description: rx },
+      ...(authorIds.length ? [{ authors: { $in: authorIds } }] : []),
+    ];
   }
 
   const skip = (page - 1) * limit;

@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { Mail, Phone, MapPin, Clock, MessageCircle, Facebook, Instagram, Linkedin, Twitter } from 'lucide-react';
 import ContactForm from '@/components/forms/ContactForm';
@@ -74,7 +75,9 @@ export default function ContactPage() {
         </div>
 
         <div className="rounded-sm border border-rule bg-surface p-6 shadow-card sm:p-8">
-          <ContactForm />
+          <Suspense fallback={null}>
+            <ContactForm />
+          </Suspense>
         </div>
       </div>
     </div>

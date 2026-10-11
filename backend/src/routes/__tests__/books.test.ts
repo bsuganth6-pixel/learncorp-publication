@@ -54,6 +54,36 @@ describe('public listing', () => {
   });
 });
 
+describe('search (title, author, ISBN, category, keyword)', () => {
+  const titles = async (q: string) => (await request(app).get(`/api/books?search=${encodeURIComponent(q)}&limit=50`)).body.data.map((b: any) => b.title);
+
+  it('finds by title, case-insensitively', async () => {
+    expect(await titles('quiet ORCHARD')).toEqual(['The Quiet Orchard']);
+  });
+  it('finds by ISBN', async () => {
+    expect(await titles('9781234567805')).toEqual(['Salt and Signal']);
+  });
+  it('finds by author name', async () => {
+    expect(await titles('ravi kumar')).toEqual(expect.arrayContaining(['Ledger of Small Things', 'Atlas of Habits']));
+    expect((await titles('ravi kumar')).length).toBe(2);
+  });
+  it('finds by category and by keyword', async () => {
+    expect(await titles('poetry')).toEqual(['Counting Rivers']);
+    expect((await titles('sample')).length).toBe(7); // keyword on every published book, never the draft
+  });
+  it('never returns drafts, even when the term matches one', async () => {
+    expect(await titles('Draft Not Yet')).toEqual([]);
+  });
+  it('treats regex metacharacters literally (no injection, no match-everything)', async () => {
+    expect(await titles('.*')).toEqual([]);
+    expect(await titles('(a+)+$')).toEqual([]);
+  });
+  it('rejects an over-long term and operator injection in the term', async () => {
+    expect((await request(app).get(`/api/books?search=${'a'.repeat(101)}`)).status).toBe(400);
+    expect((await request(app).get('/api/books?search[$ne]=x')).status).toBe(400);
+  });
+});
+
 describe('book detail', () => {
   it('returns a published book with related titles excluding itself', async () => {
     const res = await request(app).get('/api/books/the-quiet-orchard');

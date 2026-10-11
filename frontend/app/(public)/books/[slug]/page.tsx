@@ -108,9 +108,12 @@ export default async function BookDetailsPage(props: { params: Promise<{ slug: s
           )}
 
           <p className="mt-6 font-display text-3xl text-ink">{formatPrice(book.price)}</p>
-          <button type="button" className="btn-gold mt-4 w-full sm:w-auto">
-            <ShoppingCart size={16} /> Buy / Order Now
-          </button>
+          <Link
+            href={`/contact?subject=${encodeURIComponent(`Order inquiry: ${book.title} (ISBN ${book.isbn})`)}`}
+            className="btn-gold mt-4 w-full sm:w-auto"
+          >
+            <ShoppingCart size={16} aria-hidden="true" /> Buy / Order Now
+          </Link>
           <p className="mt-2 text-xs text-ink-soft">
             Submits a purchase inquiry — our team will follow up with ordering &amp; shipping details.
           </p>
@@ -173,6 +176,7 @@ export default async function BookDetailsPage(props: { params: Promise<{ slug: s
               <Link href={`/authors/${a.slug}`} className="mt-2 block font-display text-lg text-ink hover:text-gold">
                 {a.name}
               </Link>
+              {a.bio && <p className="mt-2 line-clamp-4 text-sm leading-relaxed text-ink-soft">{a.bio}</p>}
             </div>
           ))}
         </aside>

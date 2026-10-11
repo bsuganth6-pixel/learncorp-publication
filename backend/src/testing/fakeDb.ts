@@ -82,11 +82,13 @@ export function seed(): FakeData {
 function matches(doc: Doc, filter: Doc): boolean {
   return Object.entries(filter || {}).every(([key, cond]: [string, any]) => {
     if (cond === undefined) return true;
+    if (key === '$or') return (cond as Doc[]).some((sub) => matches(doc, sub));
     if (key === '$text') {
       const q = String(cond.$search).toLowerCase();
       return [doc.title, ...(doc.keywords || []), doc.description].join(' ').toLowerCase().includes(q);
     }
     const value = doc[key];
+    if (cond instanceof RegExp) return (Array.isArray(value) ? value : [value]).some((v) => cond.test(String(v)));
     if (cond && typeof cond === 'object' && !Array.isArray(cond) && !(cond instanceof Date)) {
       return Object.entries(cond).every(([op, arg]: [string, any]) => {
         const v = arg instanceof Date ? new Date(value).getTime() : value;
@@ -95,6 +97,7 @@ function matches(doc: Doc, filter: Doc): boolean {
         if (op === '$lte') return v <= a;
         if (op === '$lt') return v < a;
         if (op === '$ne') return String(value) !== String(arg);
+        if (op === '$in') return (Array.isArray(value) ? value : [value]).some((v) => (arg as any[]).map(String).includes(String(v)));
         if (op === '$regex') return new RegExp(arg, (cond as any).$options).test(String(value));
         return true;
       });

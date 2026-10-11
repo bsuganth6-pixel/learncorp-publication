@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { getBooks } from '@/lib/api-client';
+import { getBooks, getAuthors } from '@/lib/api-client';
+import { normalizeBookQuery } from '@/lib/book-query';
 import BookCard from '@/components/ui/BookCard';
 import BookFilters from '@/components/books/BookFilters';
 import Pagination from '@/components/ui/Pagination';
@@ -18,15 +19,10 @@ interface PageProps {
 
 export default async function BooksPage(props: PageProps) {
   const searchParams = await props.searchParams;
-  const page = Number(searchParams.page) || 1;
-  const { data: books, pagination } = await getBooks({
-    page,
-    limit: 12,
-    category: searchParams.category,
-    format: searchParams.format,
-    search: searchParams.search,
-    sort: searchParams.sort,
-  });
+  const [{ data: books, pagination }, authors] = await Promise.all([
+    getBooks({ ...normalizeBookQuery(searchParams), limit: 12 }),
+    getAuthors({ limit: 50 }),
+  ]);
 
   return (
     <div className="container-page py-12 sm:py-16">
@@ -34,7 +30,7 @@ export default async function BooksPage(props: PageProps) {
 
       <div className="mt-8">
         <Suspense fallback={<div className="h-24" />}>
-          <BookFilters />
+          <BookFilters authors={authors.data.map((a) => ({ _id: a._id, name: a.name }))} />
         </Suspense>
       </div>
 
