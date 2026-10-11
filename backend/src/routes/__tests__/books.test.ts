@@ -128,3 +128,47 @@ describe('stored URLs must be http(s) (they end up in href/src attributes)', () 
     expect(ok.status).toBe(201);
   });
 });
+
+describe('admin: reviews and updates', () => {
+  const bookId = () => fake.data.books.find((b: any) => b.slug === 'the-quiet-orchard')!._id;
+
+  it('adds a curated review, then removes it by index', async () => {
+    const before = fake.data.books.find((b: any) => b._id === bookId())!.reviews.length;
+    const added = await request(app).post(`/api/books/${bookId()}/reviews`).set('Cookie', adminCookie()).send({ name: 'Reader', rating: 4, comment: 'Worth it.' });
+    expect(added.status).toBe(201);
+    expect(added.body.data.reviews).toHaveLength(before + 1);
+    const removed = await request(app).delete(`/api/books/${bookId()}/reviews/${before}`).set('Cookie', adminCookie());
+    expect(removed.status).toBe(200);
+    expect(removed.body.data.reviews).toHaveLength(before);
+  });
+
+  it.each([
+    ['rating above 5', { name: 'R', rating: 9, comment: 'x' }],
+    ['rating below 1', { name: 'R', rating: 0, comment: 'x' }],
+    ['missing comment', { name: 'R', rating: 3 }],
+  ])('rejects a review with %s', async (_l, body) => {
+    expect((await request(app).post(`/api/books/${bookId()}/reviews`).set('Cookie', adminCookie()).send(body)).status).toBe(400);
+  });
+
+  it('404s when removing a review index that does not exist', async () => {
+    expect((await request(app).delete(`/api/books/${bookId()}/reviews/99`).set('Cookie', adminCookie())).status).toBe(404);
+  });
+
+  it('updates a book, regenerating the slug when the title changes; rejects an invalid partial update', async () => {
+    const created = await request(app).post('/api/books').set('Cookie', adminCookie()).send({ ...validBook(), title: 'Before Rename', isbn: '9784444444444' });
+    const id = created.body.data._id;
+    const ok = await request(app).patch(`/api/books/${id}`).set('Cookie', adminCookie()).send({ title: 'After Rename', price: 123 });
+    expect(ok.status).toBe(200);
+    expect(ok.body.data.slug).toBe('after-rename');
+    expect(ok.body.data.price).toBe(123);
+    const bad = await request(app).patch(`/api/books/${id}`).set('Cookie', adminCookie()).send({ price: -1 });
+    expect(bad.status).toBe(400);
+  });
+
+  it('deletes a book and 404s on a second delete', async () => {
+    const created = await request(app).post('/api/books').set('Cookie', adminCookie()).send({ ...validBook(), title: 'Short Lived', isbn: '9785555555555' });
+    const id = created.body.data._id;
+    expect((await request(app).delete(`/api/books/${id}`).set('Cookie', adminCookie())).status).toBe(200);
+    expect((await request(app).delete(`/api/books/${id}`).set('Cookie', adminCookie())).status).toBe(404);
+  });
+});

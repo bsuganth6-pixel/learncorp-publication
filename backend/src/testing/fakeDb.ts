@@ -126,7 +126,12 @@ export function installFakeDb(data: FakeData): { restore: () => void; data: Fake
       }
       out = out.slice(skipN, limitN === Infinity ? undefined : skipN + limitN);
       if (populate) out = out.map((d) => ({ ...d, authors: (d.authors || []).map((id: string) => authorById(id) || { _id: id }) }));
-      return single ? out[0] ?? null : out;
+      if (!single) return out;
+      const doc = out[0];
+      if (!doc) return null;
+      // real documents have save(); the in-memory docs are plain objects mutated in place
+      Object.defineProperty(doc, 'save', { value: async () => doc, enumerable: false, configurable: true });
+      return doc;
     };
     const c: any = {
       sort(s: any) { sortSpec = s; return c; }, skip(n: number) { skipN = n; return c; }, limit(n: number) { limitN = n; return c; },
