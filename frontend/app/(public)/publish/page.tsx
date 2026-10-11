@@ -24,7 +24,7 @@ export default function PublishPage() {
       <ol className="mt-12 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4">
         {STEPS.map((step, i) => (
           <li key={step} className="relative">
-            <span className="font-display text-3xl text-gold/40">{String(i + 1).padStart(2, '0')}</span>
+            <span className="font-display text-3xl text-gold">{String(i + 1).padStart(2, '0')}</span>
             <p className="mt-1 text-sm font-medium text-ink">{step}</p>
           </li>
         ))}

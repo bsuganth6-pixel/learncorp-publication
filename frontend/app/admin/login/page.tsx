@@ -66,7 +66,7 @@ function LoginForm() {
           />
         </div>
 
-        {error && <p className="field-error">{error}</p>}
+        {error && <p role="alert" className="field-error">{error}</p>}
 
         <button type="submit" disabled={loading} className="btn-primary w-full">
           {loading && <Loader2 size={16} className="animate-spin" />}

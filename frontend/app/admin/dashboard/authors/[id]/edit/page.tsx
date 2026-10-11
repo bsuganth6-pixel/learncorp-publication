@@ -27,7 +27,7 @@ export default function EditAuthorPage(props: { params: Promise<{ id: string }> 
   return (
     <div>
       <PageHeader title="Edit Author" description="Update this author's profile." />
-      {error && <p className="field-error">{error}</p>}
+      {error && <p role="alert" className="field-error">{error}</p>}
       {!author && !error && (
         <p className="flex items-center gap-2 text-sm text-ink-soft"><Loader2 size={14} className="animate-spin" /> Loading…</p>
       )}

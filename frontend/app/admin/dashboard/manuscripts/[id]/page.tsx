@@ -41,7 +41,7 @@ export default function ManuscriptDetailPage(props: { params: Promise<{ id: stri
     }
   };
 
-  if (error) return <p className="field-error">{error}</p>;
+  if (error) return <p role="alert" className="field-error">{error}</p>;
   if (!manuscript) {
     return <p className="flex items-center gap-2 text-sm text-ink-soft"><Loader2 size={14} className="animate-spin" /> Loading…</p>;
   }

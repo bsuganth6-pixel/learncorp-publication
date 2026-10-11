@@ -49,17 +49,17 @@ export default function ContactForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
       <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label className="field-label" htmlFor="name">Name</label>
           <input id="name" className="field-input" {...register('name')} />
-          {errors.name && <p className="field-error">{errors.name.message}</p>}
+          {errors.name && <p role="alert" className="field-error">{errors.name.message}</p>}
         </div>
         <div>
           <label className="field-label" htmlFor="email">Email</label>
           <input id="email" type="email" className="field-input" {...register('email')} />
-          {errors.email && <p className="field-error">{errors.email.message}</p>}
+          {errors.email && <p role="alert" className="field-error">{errors.email.message}</p>}
         </div>
       </div>
 
@@ -71,17 +71,17 @@ export default function ContactForm() {
         <div>
           <label className="field-label" htmlFor="subject">Subject</label>
           <input id="subject" className="field-input" {...register('subject')} />
-          {errors.subject && <p className="field-error">{errors.subject.message}</p>}
+          {errors.subject && <p role="alert" className="field-error">{errors.subject.message}</p>}
         </div>
       </div>
 
       <div>
         <label className="field-label" htmlFor="message">Message</label>
         <textarea id="message" rows={5} className="field-input" {...register('message')} />
-        {errors.message && <p className="field-error">{errors.message.message}</p>}
+        {errors.message && <p role="alert" className="field-error">{errors.message.message}</p>}
       </div>
 
-      {serverError && <p className="field-error">{serverError}</p>}
+      {serverError && <p role="alert" className="field-error">{serverError}</p>}
 
       <button type="submit" disabled={isSubmitting} className="btn-gold w-full sm:w-auto">
         {isSubmitting && <Loader2 size={16} className="animate-spin" />}

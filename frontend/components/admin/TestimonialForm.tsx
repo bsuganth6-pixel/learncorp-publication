@@ -66,7 +66,7 @@ export default function TestimonialForm({ testimonial }: { testimonial?: Testimo
         </select>
       </div>
 
-      {error && <p className="field-error">{error}</p>}
+      {error && <p role="alert" className="field-error">{error}</p>}
 
       <button type="submit" disabled={saving} className="btn-primary">
         {saving && <Loader2 size={16} className="animate-spin" />}

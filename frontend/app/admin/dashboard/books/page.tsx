@@ -39,7 +39,7 @@ export default function AdminBooksPage() {
     <div>
       <PageHeader title="Books" description="Manage the catalogue." newHref="/admin/dashboard/books/new" newLabel="Add Book" />
 
-      {error && <p className="field-error">{error}</p>}
+      {error && <p role="alert" className="field-error">{error}</p>}
 
       {!books ? (
         <p className="text-sm text-ink-soft">Loading…</p>

@@ -89,7 +89,7 @@ export default function ReviewsManager({ bookId, initialReviews }: { bookId: str
           </select>
         </div>
         <textarea required rows={2} placeholder="Review text" aria-label="Review text" value={comment} onChange={(e) => setComment(e.target.value)} className="field-input" />
-        {error && <p className="field-error">{error}</p>}
+        {error && <p role="alert" className="field-error">{error}</p>}
         <button type="submit" disabled={saving} className="btn-outline text-sm">
           {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
           Add Review

@@ -77,23 +77,23 @@ export default function ManuscriptForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-8">
       <fieldset className="grid gap-5 sm:grid-cols-2">
         <legend className="section-label mb-3 sm:col-span-2">Author Details</legend>
         <div>
           <label className="field-label" htmlFor="authorName">Author Name</label>
           <input id="authorName" className="field-input" {...register('authorName')} />
-          {errors.authorName && <p className="field-error">{errors.authorName.message}</p>}
+          {errors.authorName && <p role="alert" className="field-error">{errors.authorName.message}</p>}
         </div>
         <div>
           <label className="field-label" htmlFor="email">Email</label>
           <input id="email" type="email" className="field-input" {...register('email')} />
-          {errors.email && <p className="field-error">{errors.email.message}</p>}
+          {errors.email && <p role="alert" className="field-error">{errors.email.message}</p>}
         </div>
         <div>
           <label className="field-label" htmlFor="phone">Phone</label>
           <input id="phone" className="field-input" {...register('phone')} />
-          {errors.phone && <p className="field-error">{errors.phone.message}</p>}
+          {errors.phone && <p role="alert" className="field-error">{errors.phone.message}</p>}
         </div>
         <div>
           <label className="field-label" htmlFor="previousExperience">Previous Publishing Experience</label>
@@ -102,7 +102,7 @@ export default function ManuscriptForm() {
         <div className="sm:col-span-2">
           <label className="field-label" htmlFor="authorBio">Author Biography</label>
           <textarea id="authorBio" rows={3} className="field-input" {...register('authorBio')} />
-          {errors.authorBio && <p className="field-error">{errors.authorBio.message}</p>}
+          {errors.authorBio && <p role="alert" className="field-error">{errors.authorBio.message}</p>}
         </div>
       </fieldset>
 
@@ -111,7 +111,7 @@ export default function ManuscriptForm() {
         <div className="sm:col-span-2">
           <label className="field-label" htmlFor="bookTitle">Book Title</label>
           <input id="bookTitle" className="field-input" {...register('bookTitle')} />
-          {errors.bookTitle && <p className="field-error">{errors.bookTitle.message}</p>}
+          {errors.bookTitle && <p role="alert" className="field-error">{errors.bookTitle.message}</p>}
         </div>
         <div>
           <label className="field-label" htmlFor="category">Category</label>
@@ -119,7 +119,7 @@ export default function ManuscriptForm() {
             <option value="">Select a category</option>
             {BOOK_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
-          {errors.category && <p className="field-error">{errors.category.message}</p>}
+          {errors.category && <p role="alert" className="field-error">{errors.category.message}</p>}
         </div>
         <div>
           <label className="field-label" htmlFor="language">Language</label>
@@ -133,7 +133,7 @@ export default function ManuscriptForm() {
             <option value="">Select a format</option>
             {BOOK_FORMATS.map((f) => <option key={f} value={f}>{f}</option>)}
           </select>
-          {errors.format && <p className="field-error">{errors.format.message}</p>}
+          {errors.format && <p role="alert" className="field-error">{errors.format.message}</p>}
         </div>
         <div>
           <label className="field-label" htmlFor="pageCount">Approximate Page Count</label>
@@ -142,7 +142,7 @@ export default function ManuscriptForm() {
         <div className="sm:col-span-2">
           <label className="field-label" htmlFor="description">Book Description</label>
           <textarea id="description" rows={4} className="field-input" {...register('description')} />
-          {errors.description && <p className="field-error">{errors.description.message}</p>}
+          {errors.description && <p role="alert" className="field-error">{errors.description.message}</p>}
         </div>
         <div className="sm:col-span-2">
           <label className="field-label" htmlFor="additionalInfo">Additional Information</label>
@@ -164,7 +164,7 @@ export default function ManuscriptForm() {
               onChange={(e) => setManuscriptFile(e.target.files?.[0] || null)}
             />
           </label>
-          {fileError && <p className="field-error">{fileError}</p>}
+          {fileError && <p role="alert" className="field-error">{fileError}</p>}
         </div>
         <div>
           <label className="field-label">Cover (optional)</label>
@@ -186,10 +186,10 @@ export default function ManuscriptForm() {
           <input type="checkbox" className="mt-0.5" {...register('agreedToTerms')} />
           I agree to the terms and conditions of manuscript submission.
         </label>
-        {errors.agreedToTerms && <p className="field-error">{errors.agreedToTerms.message}</p>}
+        {errors.agreedToTerms && <p role="alert" className="field-error">{errors.agreedToTerms.message}</p>}
       </div>
 
-      {serverError && <p className="field-error">{serverError}</p>}
+      {serverError && <p role="alert" className="field-error">{serverError}</p>}
 
       <button type="submit" disabled={isSubmitting} className="btn-gold w-full sm:w-auto">
         {isSubmitting && <Loader2 size={16} className="animate-spin" />}

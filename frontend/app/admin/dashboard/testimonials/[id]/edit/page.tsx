@@ -25,7 +25,7 @@ export default function EditTestimonialPage(props: { params: Promise<{ id: strin
   return (
     <div>
       <PageHeader title="Edit Testimonial" />
-      {error && <p className="field-error">{error}</p>}
+      {error && <p role="alert" className="field-error">{error}</p>}
       {!testimonial && !error && (
         <p className="flex items-center gap-2 text-sm text-ink-soft"><Loader2 size={14} className="animate-spin" /> Loading…</p>
       )}

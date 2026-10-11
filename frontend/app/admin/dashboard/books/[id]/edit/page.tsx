@@ -22,7 +22,7 @@ export default function EditBookPage(props: { params: Promise<{ id: string }> })
   return (
     <div>
       <PageHeader title="Edit Book" description="Update this catalogue entry." />
-      {error && <p className="field-error">{error}</p>}
+      {error && <p role="alert" className="field-error">{error}</p>}
       {!book && !error && (
         <p className="flex items-center gap-2 text-sm text-ink-soft"><Loader2 size={14} className="animate-spin" /> Loading…</p>
       )}
