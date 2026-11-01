@@ -15,7 +15,8 @@ export default async function AuthorsPage(props: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
   const searchParams = await props.searchParams;
-  const page = Number(searchParams.page) || 1;
+  const requested = Math.floor(Number(searchParams.page));
+  const page = Number.isFinite(requested) && requested >= 1 ? requested : 1;
   const { data: authors, pagination } = await getAuthors({ page, limit: 12 });
 
   return (

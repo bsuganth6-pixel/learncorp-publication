@@ -5,6 +5,7 @@ import { Author } from '../models/Author';
 import { ApiError } from '../utils/ApiError';
 import { asyncHandler } from '../utils/asyncHandler';
 import { toSlug } from '../utils/slug';
+import { escapeRegex } from '../utils/escapeRegex';
 
 const SORT_MAP: Record<string, Record<string, 1 | -1>> = {
   newest: { createdAt: -1 },
@@ -48,7 +49,7 @@ async function queryBooks(req: Request, res: Response, forcedStatus: 'published'
   if (search) {
     // Case-insensitive "contains" over the fields a reader would search by. The
     // term is escaped so it is matched literally (no regex injection / ReDoS).
-    const rx = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const rx = new RegExp(escapeRegex(search.trim()), 'i');
     const authorIds = (await Author.find({ name: rx }).select('_id')).map((a) => a._id);
     filter.$or = [
       { title: rx }, { isbn: rx }, { category: rx }, { keywords: rx }, { description: rx },

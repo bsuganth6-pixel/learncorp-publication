@@ -4,11 +4,11 @@ import {
 } from '../controllers/authorController';
 import { protect, restrictTo } from '../middleware/auth';
 import { validate } from '../middleware/validate';
-import { createAuthorSchema, updateAuthorSchema } from '../validators/authorValidators';
+import { createAuthorSchema, updateAuthorSchema, authorQuerySchema } from '../validators/authorValidators';
 
 const router = Router();
 
-router.get('/', getAuthors);
+router.get('/', validate(authorQuerySchema, 'query'), getAuthors);
 router.get('/:slug', getAuthorBySlug);
 
 router.post('/', protect, restrictTo('admin', 'superadmin'), validate(createAuthorSchema), createAuthor);

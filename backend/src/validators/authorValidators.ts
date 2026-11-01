@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { optionalHttpUrl } from './common';
+import { optionalHttpUrl, paginationSchema } from './common';
 
 const socialLinksSchema = z
   .object({
@@ -21,4 +21,9 @@ export const createAuthorSchema = z.object({
 
 export const updateAuthorSchema = createAuthorSchema.partial();
 
+export const authorQuerySchema = paginationSchema.extend({
+  search: z.string().trim().max(100).optional(),
+});
+
 export type CreateAuthorInput = z.infer<typeof createAuthorSchema>;
+export type AuthorQuery = z.infer<typeof authorQuerySchema>;

@@ -4,6 +4,8 @@ import { Book } from '../models/Book';
 import { ApiError } from '../utils/ApiError';
 import { asyncHandler } from '../utils/asyncHandler';
 import { toSlug } from '../utils/slug';
+import { escapeRegex } from '../utils/escapeRegex';
+import type { AuthorQuery } from '../validators/authorValidators';
 
 async function ensureUniqueSlug(name: string, ignoreId?: string): Promise<string> {
   const base = toSlug(name);
@@ -17,11 +19,10 @@ async function ensureUniqueSlug(name: string, ignoreId?: string): Promise<string
 }
 
 export const getAuthors = asyncHandler(async (req: Request, res: Response) => {
-  const page = Number(req.query.page) || 1;
-  const limit = Math.min(Number(req.query.limit) || 12, 50);
-  const search = (req.query.search as string) || '';
+  // Already validated and coerced by authorQuerySchema (routes/authorRoutes.ts).
+  const { page, limit, search } = req.query as unknown as AuthorQuery;
 
-  const filter = search ? { name: { $regex: search, $options: 'i' } } : {};
+  const filter = search ? { name: new RegExp(escapeRegex(search), 'i') } : {};
   const skip = (page - 1) * limit;
 
   const [authors, total] = await Promise.all([
