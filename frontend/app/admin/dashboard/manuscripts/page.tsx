@@ -6,6 +6,7 @@ import { Eye } from 'lucide-react';
 import { getManuscripts, updateManuscriptStatus, ApiClientError } from '@/lib/api-client';
 import type { Manuscript } from '@/lib/types';
 import PageHeader from '@/components/admin/PageHeader';
+import AdminPager from '@/components/admin/AdminPager';
 import EmptyState from '@/components/ui/EmptyState';
 import { MANUSCRIPT_STATUSES } from '@/lib/constants';
 import { formatDate } from '@/lib/utils';
@@ -14,12 +15,19 @@ export default function AdminManuscriptsPage() {
   const [manuscripts, setManuscripts] = useState<Manuscript[] | null>(null);
   const [statusFilter, setStatusFilter] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
 
   const load = useCallback(() => {
-    getManuscripts({ status: statusFilter || undefined })
-      .then((res) => setManuscripts(res.data))
+    getManuscripts({ status: statusFilter || undefined, page })
+      .then((res) => {
+        // Deleting the last item on a page leaves it empty: step back instead of showing an empty state.
+        if (res.data.length === 0 && page > 1) { setPage(page - 1); return; }
+        setManuscripts(res.data);
+        setPages(res.pagination.pages);
+      })
       .catch(() => setManuscripts([]));
-  }, [statusFilter]);
+  }, [statusFilter, page]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -40,7 +48,7 @@ export default function AdminManuscriptsPage() {
       <PageHeader title="Manuscripts" description="Review submissions and update their status." />
 
       <div className="mb-5">
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Filter by status" className="field-input w-auto">
+        <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} aria-label="Filter by status" className="field-input w-auto">
           <option value="">All statuses</option>
           {MANUSCRIPT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
@@ -96,6 +104,8 @@ export default function AdminManuscriptsPage() {
           </table>
         </div>
       )}
+
+      <AdminPager page={page} pages={pages} onChange={setPage} />
     </div>
   );
 }

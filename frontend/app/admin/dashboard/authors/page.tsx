@@ -7,16 +7,26 @@ import { Pencil, Trash2, Loader2 } from 'lucide-react';
 import { getAdminAuthors, deleteAuthor, ApiClientError } from '@/lib/api-client';
 import type { Author } from '@/lib/types';
 import PageHeader from '@/components/admin/PageHeader';
+import AdminPager from '@/components/admin/AdminPager';
 import EmptyState from '@/components/ui/EmptyState';
 import { initials } from '@/lib/utils';
 
 export default function AdminAuthorsPage() {
   const [authors, setAuthors] = useState<Author[] | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
 
   const load = useCallback(() => {
-    getAdminAuthors({ page: 1 }).then((res) => setAuthors(res.data)).catch(() => setAuthors([]));
-  }, []);
+    getAdminAuthors({ page })
+      .then((res) => {
+        // Deleting the last item on a page leaves it empty: step back instead of showing an empty state.
+        if (res.data.length === 0 && page > 1) { setPage(page - 1); return; }
+        setAuthors(res.data);
+        setPages(res.pagination.pages);
+      })
+      .catch(() => setAuthors([]));
+  }, [page]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -25,7 +35,7 @@ export default function AdminAuthorsPage() {
     setDeletingId(id);
     try {
       await deleteAuthor(id);
-      setAuthors((prev) => prev?.filter((a) => a._id !== id) || null);
+      load();
     } catch (err) {
       alert(err instanceof ApiClientError ? err.message : 'Could not delete this author');
     } finally {
@@ -73,6 +83,8 @@ export default function AdminAuthorsPage() {
           ))}
         </div>
       )}
+
+      <AdminPager page={page} pages={pages} onChange={setPage} />
     </div>
   );
 }

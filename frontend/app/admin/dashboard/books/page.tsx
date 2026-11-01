@@ -7,18 +7,30 @@ import { Pencil, Trash2, Loader2 } from 'lucide-react';
 import { getAdminBooks, deleteBook, ApiClientError } from '@/lib/api-client';
 import type { Book } from '@/lib/types';
 import PageHeader from '@/components/admin/PageHeader';
+import AdminPager from '@/components/admin/AdminPager';
 import Badge from '@/components/ui/Badge';
 import EmptyState from '@/components/ui/EmptyState';
 import { formatPrice } from '@/lib/utils';
+
+const PAGE_SIZE = 20;
 
 export default function AdminBooksPage() {
   const [books, setBooks] = useState<Book[] | null>(null);
   const [error, setError] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
 
   const load = useCallback(() => {
-    getAdminBooks({ limit: 50 }).then((res) => setBooks(res.data)).catch(() => setError('Could not load books'));
-  }, []);
+    getAdminBooks({ page, limit: PAGE_SIZE })
+      .then((res) => {
+        // Deleting the last item on a page leaves it empty: step back instead of showing an empty state.
+        if (res.data.length === 0 && page > 1) { setPage(page - 1); return; }
+        setBooks(res.data);
+        setPages(res.pagination.pages);
+      })
+      .catch(() => setError('Could not load books'));
+  }, [page]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -27,7 +39,7 @@ export default function AdminBooksPage() {
     setDeletingId(id);
     try {
       await deleteBook(id);
-      setBooks((prev) => prev?.filter((b) => b._id !== id) || null);
+      load();
     } catch (err) {
       alert(err instanceof ApiClientError ? err.message : 'Could not delete this book');
     } finally {
@@ -100,6 +112,8 @@ export default function AdminBooksPage() {
           </table>
         </div>
       )}
+
+      <AdminPager page={page} pages={pages} onChange={setPage} />
     </div>
   );
 }

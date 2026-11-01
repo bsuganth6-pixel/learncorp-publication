@@ -5,6 +5,7 @@ import { Trash2, Loader2, Mail, MailOpen } from 'lucide-react';
 import { getContactMessages, markMessageRead, deleteContactMessage, ApiClientError } from '@/lib/api-client';
 import type { ContactMessage } from '@/lib/types';
 import PageHeader from '@/components/admin/PageHeader';
+import AdminPager from '@/components/admin/AdminPager';
 import EmptyState from '@/components/ui/EmptyState';
 import Badge from '@/components/ui/Badge';
 import { formatDate, cn } from '@/lib/utils';
@@ -12,10 +13,19 @@ import { formatDate, cn } from '@/lib/utils';
 export default function AdminMessagesPage() {
   const [messages, setMessages] = useState<ContactMessage[] | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
 
   const load = useCallback(() => {
-    getContactMessages({ page: 1 }).then((res) => setMessages(res.data)).catch(() => setMessages([]));
-  }, []);
+    getContactMessages({ page })
+      .then((res) => {
+        // Deleting the last item on a page leaves it empty: step back instead of showing an empty state.
+        if (res.data.length === 0 && page > 1) { setPage(page - 1); return; }
+        setMessages(res.data);
+        setPages(res.pagination.pages);
+      })
+      .catch(() => setMessages([]));
+  }, [page]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -36,7 +46,7 @@ export default function AdminMessagesPage() {
     setBusyId(id);
     try {
       await deleteContactMessage(id);
-      setMessages((prev) => prev?.filter((m) => m._id !== id) || null);
+      load();
     } catch (err) {
       alert(err instanceof ApiClientError ? err.message : 'Could not delete this message');
     } finally {
@@ -84,6 +94,8 @@ export default function AdminMessagesPage() {
           ))}
         </div>
       )}
+
+      <AdminPager page={page} pages={pages} onChange={setPage} />
     </div>
   );
 }

@@ -6,16 +6,26 @@ import { Pencil, Trash2, Loader2 } from 'lucide-react';
 import { getAllTestimonials, deleteTestimonial, ApiClientError } from '@/lib/api-client';
 import type { Testimonial } from '@/lib/types';
 import PageHeader from '@/components/admin/PageHeader';
+import AdminPager from '@/components/admin/AdminPager';
 import EmptyState from '@/components/ui/EmptyState';
 import Badge from '@/components/ui/Badge';
 
 export default function AdminTestimonialsPage() {
   const [testimonials, setTestimonials] = useState<Testimonial[] | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(1);
 
   const load = useCallback(() => {
-    getAllTestimonials({ page: 1 }).then((res) => setTestimonials(res.data)).catch(() => setTestimonials([]));
-  }, []);
+    getAllTestimonials({ page })
+      .then((res) => {
+        // Deleting the last item on a page leaves it empty: step back instead of showing an empty state.
+        if (res.data.length === 0 && page > 1) { setPage(page - 1); return; }
+        setTestimonials(res.data);
+        setPages(res.pagination.pages);
+      })
+      .catch(() => setTestimonials([]));
+  }, [page]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -24,7 +34,7 @@ export default function AdminTestimonialsPage() {
     setDeletingId(id);
     try {
       await deleteTestimonial(id);
-      setTestimonials((prev) => prev?.filter((t) => t._id !== id) || null);
+      load();
     } catch (err) {
       alert(err instanceof ApiClientError ? err.message : 'Could not delete this testimonial');
     } finally {
@@ -64,6 +74,8 @@ export default function AdminTestimonialsPage() {
           ))}
         </div>
       )}
+
+      <AdminPager page={page} pages={pages} onChange={setPage} />
     </div>
   );
 }
