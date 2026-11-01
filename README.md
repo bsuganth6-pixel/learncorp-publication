@@ -1,111 +1,111 @@
-# LearnCorp Publication — Book Publication Platform
+# LearnCorp Publication — book publishing platform
 
-Full-stack publishing platform: public catalogue + author directory + manuscript
-submission + admin dashboard. Built per the project spec as a Next.js frontend and
-a separate Express/MongoDB API.
+A full-stack website for a publishing company: a public site (catalogue, authors, services, manuscript submission,
+contact, About, FAQ) and a protected admin dashboard for managing books, authors, manuscripts, messages and
+testimonials. Built to the project specification (`docs/REQUIREMENTS.md` checks it line by line).
+
+## Status
+
+Code-complete against the spec, with the gaps listed in [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md).
+
+- **Verified** (sandbox): 135 backend and 32 frontend automated tests, typecheck, lint, production build, and browser
+  checks in headless Chromium against the production build ([`e2e/`](e2e/README.md)).
+- **Not verified**: anything involving a real MongoDB, Cloudinary, S3/R2, Vercel or Render; Firefox, Safari and real
+  phones; Lighthouse. Nothing here has been deployed by the author.
+- **Before launch:** fill in `frontend/lib/site-config.ts` (contact details and About text are placeholders), deploy with
+  [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md), then run the verification table in that guide.
+
+## Features
+
+**Public site** — home with hero, featured books, services, strengths, authors, live statistics, testimonials · book
+catalogue with search (title, author, ISBN, category, keyword) and filters (category, author, year, format, price) · book
+pages with reviews, table of contents, related books, JSON-LD · author directory and profiles · services · an
+eight-step publishing process and manuscript submission with file uploads · contact form · About · FAQ · responsive,
+accessible (axe-core finds no WCAG A/AA violations on 11 pages at two widths; automated rules only), SEO basics
+(metadata, Open Graph, sitemap, robots).
+
+**Admin dashboard** (`/admin`) — email/password login · books (add, edit, delete, cover upload, publish/unpublish) ·
+authors (with photo) · manuscripts (status workflow, signed download links) · contact messages · testimonials · review
+moderation · every list paginated.
 
 ## Stack
 
-| Layer | Choice |
+| Layer | Technology |
 |---|---|
-| Frontend | Next.js 14 (App Router) · TypeScript · Tailwind CSS |
-| Backend | Node.js · Express · TypeScript |
-| Database | MongoDB (Mongoose) |
-| Auth | JWT in an httpOnly cookie · bcrypt |
-| Images | Cloudinary |
-| Manuscript files | S3-compatible storage (AWS S3 or Cloudflare R2), private + signed URLs |
-
-## Project structure
+| Frontend | Next.js 15.5 (App Router), React 19, TypeScript, Tailwind CSS 3.4, react-hook-form + zod |
+| API | Node 22, Express 4, TypeScript, Zod validation |
+| Database | MongoDB (Atlas) via Mongoose 8 |
+| Auth | bcrypt-hashed passwords, JWT in an `httpOnly`, `Secure`, `SameSite=Strict` cookie |
+| Files | Cloudinary (images), Cloudflare R2 or AWS S3 (manuscripts, private, signed downloads) |
+| Hosting | Vercel (frontend) · Render (API) · MongoDB Atlas |
 
 ```
-backend/    Express API — models, controllers, routes, middleware, services
-frontend/   Next.js app — public site + /admin dashboard
+Browser ──▶ Vercel (Next.js) ── /api/* rewrite ──▶ Render (Express) ──▶ MongoDB Atlas
+                                                         ├──▶ Cloudinary
+                                                         └──▶ R2 / S3
 ```
 
-## Local setup
+The browser only ever talks to the site's own origin; Next.js proxies `/api/*` to the API, which keeps the session
+cookie first-party. Why the API is not a Vercel Function: [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 
-### 1. Backend
+## Repository layout
+
+```
+backend/     Express + Mongoose API (TypeScript) and its Jest tests
+frontend/    Next.js app: app/ (routes), components/, lib/ (API client, config, helpers), assets/brand/
+brand/       Logo kit, usage notes, and the script that regenerates it
+docs/        API.md · DEPLOYMENT.md · REQUIREMENTS.md
+e2e/         Browser checks (Playwright, Python)
+render.yaml  Render Blueprint for the API
+.github/workflows/ci.yml   Typecheck, lint, tests and build for both packages
+```
+
+## Run it locally
+
+Requires Node 22 and a MongoDB connection string (a free Atlas cluster is fine).
 
 ```bash
+# API  -> http://localhost:5000
 cd backend
-cp .env.example .env      # fill in MONGODB_URI, JWT_SECRET, Cloudinary + storage keys
-npm install
-npm run seed:admin        # creates your first admin user from SEED_ADMIN_* in .env
-npm run dev                # http://localhost:5000
-```
+cp .env.example .env          # set MONGODB_URI, JWT_SECRET, CLIENT_URL=http://localhost:3000
+npm ci
+npm run seed:admin            # creates the first admin from SEED_ADMIN_* in .env
+npm run dev
 
-### 2. Frontend
-
-```bash
+# Frontend  -> http://localhost:3000
 cd frontend
-cp .env.example .env.local   # NEXT_PUBLIC_API_URL=http://localhost:5000/api
-npm install
-npm run dev                   # http://localhost:3000
+cp .env.example .env.local    # API_ORIGIN=http://localhost:5000
+npm ci
+npm run dev
 ```
 
-Admin dashboard: `http://localhost:3000/admin/login`, using the email/password
-you set in the backend's `SEED_ADMIN_*` variables.
+Image and manuscript uploads need Cloudinary and S3/R2 credentials in `backend/.env`; everything else works without them.
 
-## Environment variables
+**Without any external service:** `cd backend && npm run dev:fake` starts the same API on port 5055 with seeded sample
+data in memory (resets on restart; admin `admin@example.com` / `correct-horse-battery`; storage stubbed). Point the
+frontend at it with `API_ORIGIN=http://localhost:5055`.
 
-See `backend/.env.example` and `frontend/.env.example` for the full list. At minimum
-to run locally: `MONGODB_URI`, `JWT_SECRET`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`.
-Cloudinary and S3/R2 variables are required before cover-image or manuscript uploads
-will work — routes that need them return a clear error if they're unset rather than
-failing silently.
+## Commands
 
-## Deployment
+| | Backend (`backend/`) | Frontend (`frontend/`) |
+|---|---|---|
+| Develop | `npm run dev` · `npm run dev:fake` | `npm run dev` |
+| Check | `npm run typecheck` · `npm test` | `npm run typecheck` · `npm run lint` · `npm test` |
+| Build / run | `npm run build` · `npm start` | `npm run build` · `npm start` |
 
-- **Frontend** → Vercel. Set `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_SITE_URL` to your
-  deployed API and site URLs.
-- **Backend** → Render (or similar). Set every variable from `.env.example`, plus
-  `CLIENT_URL` to your deployed frontend origin (used for CORS) and `NODE_ENV=production`.
-- **Database** → MongoDB Atlas. Whitelist Render's IPs (or `0.0.0.0/0` with a strong,
-  unique DB user password) and use that connection string as `MONGODB_URI`.
+The frontend's production build needs `API_ORIGIN` and fails without it, by design.
 
-## What's implemented
+## Configuration
 
-- Public site: Home, Books (catalogue with search/filter/sort + detail pages),
-  Authors (directory + profiles), Services, Publish Your Book (8-step process +
-  manuscript submission form with file upload), Contact (+ form), About, FAQ.
-- Admin: login, dashboard overview (stats), full CRUD for Books, Authors, and
-  Testimonials; Manuscript review with status workflow and secure file downloads;
-  Contact message inbox (read/delete).
-- Cross-cutting: SEO (per-page metadata, sitemap.xml, robots.txt), rate limiting,
-  input validation (Zod) on every mutating endpoint, role-gated admin routes,
-  secure file upload handling (real file-signature checks, not just declared
-  mimetype), responsive layout throughout.
+Every variable is documented in `backend/.env.example` and `frontend/.env.example`, and tabulated in
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md#environment-variables). Secrets live only in environment variables; `.env`
+files are git-ignored.
 
-## Verified in this environment
+## Documentation
 
-- Backend: `npm install`, `npm run typecheck`, `npm run build` all pass clean.
-  `npm audit`: 0 vulnerabilities.
-- Frontend: `npm install`, `npm run typecheck`, `npm run build`, `npm run lint` all
-  pass clean (23/23 routes build, including SSG for book/author detail pages).
-
-## Not verified here (no live services in this sandbox)
-
-- No live MongoDB connection was available to test — models and queries are
-  correct against the Mongoose API by inspection, but no data has actually been
-  written or read against a real database yet. First real test is your own
-  `MONGODB_URI` + `npm run seed:admin`.
-- No live Cloudinary / S3 / R2 credentials — upload code paths are implemented
-  and guarded (they return a clear config error rather than crashing if unset),
-  but haven't uploaded a real file yet.
-- Not deployed. Not tested end-to-end in a browser against a running backend.
-
-## Known issue to flag
-
-`npm audit` reports high/critical advisories in `postcss`, nested **inside**
-Next.js 14.2.35's own bundled copy (not this project's direct `postcss`
-dependency). The only fix `npm` offers is a forced major upgrade to Next 16,
-which I didn't apply unprompted since it's a breaking change I haven't verified
-against everything built here — flagging it as a deliberate next-step decision
-rather than silently leaving it or silently forcing it.
-
-## Not yet built (next pass)
-
-- Author-management page for manuscript → author/book conversion is manual
-  (accepting a manuscript doesn't yet auto-create a Book/Author record).
-- No automated tests (unit/integration) yet.
-- No CI/CD config.
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — architecture, step-by-step setup, verification, troubleshooting
+- [`docs/API.md`](docs/API.md) — endpoint reference
+- [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md) — the spec, checked item by item, with open items
+- [`backend/tests/README.md`](backend/tests/README.md) — what the API tests do and do not prove
+- [`brand/README.md`](brand/README.md) — logo kit and its limits
+- [`e2e/README.md`](e2e/README.md) — browser checks

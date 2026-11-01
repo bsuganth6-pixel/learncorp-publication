@@ -13,7 +13,7 @@ one, and S3/Cloudinary are stubbed where a test submits files.
   signature, size limit, cover handling), controller logic (public listing
   can't expose drafts, pagination, filters, slug uniqueness, mass-assignment,
   author-delete conflict), and Mongoose schema validation (`validateSync`).
-- NOT proven: anything MongoDB itself does — real queries, the text index,
+- NOT proven: anything MongoDB itself does — real queries, index behaviour,
   unique-index errors, `populate` against real documents, connection handling —
   or real Cloudinary/S3 uploads. Those need a real `MONGODB_URI` and
   credentials; run the app against them before trusting production.
