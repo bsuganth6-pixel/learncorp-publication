@@ -1,7 +1,12 @@
 import type { MetadataRoute } from 'next';
 import { getBooks, getAuthors } from '@/lib/api-client';
+import { getSiteUrl } from '@/lib/site-url';
+import { fetchAllPages } from '@/lib/paginate';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+// The API's maximum page size.
+const PAGE_SIZE = 50;
+
+const SITE_URL = getSiteUrl();
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = [
@@ -9,15 +14,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ].map((path) => ({ url: `${SITE_URL}${path}`, lastModified: new Date() }));
 
   const [books, authors] = await Promise.all([
-    getBooks({ limit: 50 }),
-    getAuthors({ limit: 50 }),
+    fetchAllPages((page) => getBooks({ page, limit: PAGE_SIZE })),
+    fetchAllPages((page) => getAuthors({ page, limit: PAGE_SIZE })),
   ]);
 
-  const bookRoutes = books.data.map((b) => ({
+  const bookRoutes = books.map((b) => ({
     url: `${SITE_URL}/books/${b.slug}`,
     lastModified: new Date(b.createdAt),
   }));
-  const authorRoutes = authors.data.map((a) => ({
+  const authorRoutes = authors.map((a) => ({
     url: `${SITE_URL}/authors/${a.slug}`,
     lastModified: new Date(a.createdAt),
   }));

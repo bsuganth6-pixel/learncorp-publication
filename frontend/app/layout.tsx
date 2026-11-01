@@ -3,6 +3,7 @@ import localFont from 'next/font/local';
 import './globals.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import { getSiteUrl } from '@/lib/site-url';
 
 // Self-hosted (not next/font/google) so the build has no external network
 // dependency and the browser makes no third-party font request at runtime.
@@ -20,7 +21,7 @@ const inter = localFont({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
+  metadataBase: new URL(getSiteUrl()),
   title: {
     default: 'LearnCorp Publication — Your Story. Your Knowledge. Your Book.',
     template: '%s | LearnCorp Publication',
@@ -31,7 +32,9 @@ export const metadata: Metadata = {
     title: 'LearnCorp Publication',
     description: 'A platform for authors to transform ideas and manuscripts into professionally published books.',
     type: 'website',
+    siteName: 'LearnCorp Publication',
   },
+  twitter: { card: 'summary_large_image' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
