@@ -2,7 +2,7 @@
 
 import { Suspense, useState, FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Image from 'next/image';
+import { LogoMark } from '@/components/brand/Logo';
 import { Loader2 } from 'lucide-react';
 import { login, ApiClientError } from '@/lib/api-client';
 import { safeAdminRedirect } from '@/lib/safe-redirect';
@@ -33,9 +33,7 @@ function LoginForm() {
   return (
     <div className="w-full max-w-sm rounded-sm border border-paper/10 bg-surface p-8 shadow-card">
       <div className="flex flex-col items-center text-center">
-        <span className="relative h-12 w-12 overflow-hidden rounded-sm">
-          <Image src="/logo.png" alt="LearnCorp Publication" fill className="object-contain" />
-        </span>
+        <LogoMark className="h-12 w-auto" alt="LearnCorp Publication" />
         <h1 className="mt-4 font-display text-xl text-ink">Admin Sign In</h1>
         <p className="mt-1 text-sm text-ink-soft">LearnCorp Publication dashboard</p>
       </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
+import { LogoMark } from '@/components/brand/Logo';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Menu, X, ChevronDown, Search } from 'lucide-react';
@@ -36,9 +36,7 @@ export default function Header() {
       <div className="border-b border-rule bg-paper/95 backdrop-blur">
         <div className="container-page flex h-16 items-center justify-between gap-6 sm:h-20">
           <Link href="/" className="flex shrink-0 items-center gap-2.5">
-            <span className="relative h-9 w-9 overflow-hidden rounded-sm sm:h-10 sm:w-10">
-              <Image src="/logo.png" alt="" fill className="object-contain" priority />
-            </span>
+            <LogoMark priority className="h-9 w-auto sm:h-10" />
             <span className="font-display text-lg font-medium leading-none text-ink sm:text-xl">
               LearnCorp <span className="text-gold">Publication</span>
             </span>

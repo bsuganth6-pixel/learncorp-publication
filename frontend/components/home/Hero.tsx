@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import Image from 'next/image';
+import { LogoLockup } from '@/components/brand/Logo';
 import { ArrowRight, BookOpen } from 'lucide-react';
 
 export default function Hero() {
@@ -30,14 +30,8 @@ export default function Hero() {
 
         <div className="relative mx-auto aspect-square w-full max-w-md">
           <div className="absolute -inset-4 rounded-sm border border-gold-light/20" />
-          <div className="relative h-full w-full overflow-hidden rounded-sm bg-paper/5 p-10">
-            <Image
-              src="/logo.png"
-              alt="LearnCorp Publication"
-              fill
-              className="object-contain p-6"
-              priority
-            />
+          <div className="relative flex h-full w-full items-center justify-center rounded-sm bg-paper/5 p-8 sm:p-12">
+            <LogoLockup onDark priority className="h-auto w-full" />
           </div>
         </div>
       </div>

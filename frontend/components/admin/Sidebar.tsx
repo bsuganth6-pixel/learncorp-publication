@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
+import { LogoMark } from '@/components/brand/Logo';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, BookOpen, Users, FileText, Mail, Quote, LogOut, Menu, X,
@@ -33,9 +33,7 @@ export default function Sidebar() {
   const content = (
     <>
       <div className="flex items-center gap-2.5 px-5 py-6">
-        <span className="relative h-8 w-8 overflow-hidden rounded-sm">
-          <Image src="/logo.png" alt="" fill className="object-contain" />
-        </span>
+        <LogoMark className="h-7 w-auto" />
         <span className="font-display text-base text-paper">Admin Dashboard</span>
       </div>
 
