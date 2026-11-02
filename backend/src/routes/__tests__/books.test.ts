@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import request from 'supertest';
 import app from '../../app';
-import { installFakeDb, seed, adminCookie } from '../../testing/fakeDb';
+import { installFakeDb, seed, adminAuth } from '../../testing/fakeDb';
 
 let fake: ReturnType<typeof installFakeDb>;
 beforeAll(() => { fake = installFakeDb(seed()); });
@@ -108,35 +108,35 @@ describe('public stats', () => {
 
 describe('admin book management', () => {
   it('admin listing can see drafts', async () => {
-    const res = await request(app).get('/api/books/admin/all?status=draft').set('Cookie', adminCookie());
+    const res = await request(app).get('/api/books/admin/all?status=draft').set(adminAuth());
     expect(res.status).toBe(200);
     expect(res.body.data.map((b: any) => b.status)).toEqual(['draft']);
   });
 
   it('creates a book; a duplicate title gets a unique slug; unknown fields are not mass-assigned', async () => {
-    const first = await request(app).post('/api/books').set('Cookie', adminCookie()).send({ ...validBook(), slug: 'hacked', ratingsAvg: 5, _id: 'x' });
+    const first = await request(app).post('/api/books').set(adminAuth()).send({ ...validBook(), slug: 'hacked', ratingsAvg: 5, _id: 'x' });
     expect(first.status).toBe(201);
     expect(first.body.data.slug).toBe('brand-new-title');
     expect(first.body.data.ratingsAvg).toBe(0);
     expect(first.body.data._id).not.toBe('x');
 
-    const second = await request(app).post('/api/books').set('Cookie', adminCookie()).send({ ...validBook(), isbn: '9782222222222' });
+    const second = await request(app).post('/api/books').set(adminAuth()).send({ ...validBook(), isbn: '9782222222222' });
     expect(second.body.data.slug).toBe('brand-new-title-1');
   });
 
   it('rejects invalid payloads with per-field details', async () => {
-    const res = await request(app).post('/api/books').set('Cookie', adminCookie())
+    const res = await request(app).post('/api/books').set(adminAuth())
       .send({ ...validBook(), authors: [], isbn: '123', price: -5, coverImageUrl: 'not-a-url', format: 'Scroll' });
     expect(res.status).toBe(400);
     expect(Object.keys(res.body.details)).toEqual(expect.arrayContaining(['authors', 'isbn', 'price', 'coverImageUrl', 'format']));
   });
 
   it('refuses to delete an author still credited on a book (409), allows deleting a free one', async () => {
-    const blocked = await request(app).delete(`/api/authors/${fake.data.authors[0]._id}`).set('Cookie', adminCookie());
+    const blocked = await request(app).delete(`/api/authors/${fake.data.authors[0]._id}`).set(adminAuth());
     expect(blocked.status).toBe(409);
-    const created = await request(app).post('/api/authors').set('Cookie', adminCookie()).send({ name: 'Free Author' });
+    const created = await request(app).post('/api/authors').set(adminAuth()).send({ name: 'Free Author' });
     expect(created.status).toBe(201);
-    const ok = await request(app).delete(`/api/authors/${created.body.data._id}`).set('Cookie', adminCookie());
+    const ok = await request(app).delete(`/api/authors/${created.body.data._id}`).set(adminAuth());
     expect(ok.status).toBe(200);
   });
 });
@@ -148,12 +148,12 @@ describe('stored URLs must be http(s) (they end up in href/src attributes)', () 
     ['testimonial photo', '/api/testimonials', () => ({ name: 'X', message: 'm', photoUrl: 'javascript:alert(1)' })],
     ['book cover', '/api/books', () => ({ ...validBook(), coverImageUrl: 'javascript:alert(1)' })],
   ])('rejects a javascript:/data: URL in %s', async (_label, path, makeBody) => {
-    const res = await request(app).post(path).set('Cookie', adminCookie()).send(makeBody());
+    const res = await request(app).post(path).set(adminAuth()).send(makeBody());
     expect(res.status).toBe(400);
   });
 
   it('still accepts normal https links and an empty string for "not set"', async () => {
-    const ok = await request(app).post('/api/authors').set('Cookie', adminCookie())
+    const ok = await request(app).post('/api/authors').set(adminAuth())
       .send({ name: 'Linked Author', photoUrl: '', socialLinks: { website: 'https://example.com', twitter: '' } });
     expect(ok.status).toBe(201);
   });
@@ -164,10 +164,10 @@ describe('admin: reviews and updates', () => {
 
   it('adds a curated review, then removes it by index', async () => {
     const before = fake.data.books.find((b: any) => b._id === bookId())!.reviews.length;
-    const added = await request(app).post(`/api/books/${bookId()}/reviews`).set('Cookie', adminCookie()).send({ name: 'Reader', rating: 4, comment: 'Worth it.' });
+    const added = await request(app).post(`/api/books/${bookId()}/reviews`).set(adminAuth()).send({ name: 'Reader', rating: 4, comment: 'Worth it.' });
     expect(added.status).toBe(201);
     expect(added.body.data.reviews).toHaveLength(before + 1);
-    const removed = await request(app).delete(`/api/books/${bookId()}/reviews/${before}`).set('Cookie', adminCookie());
+    const removed = await request(app).delete(`/api/books/${bookId()}/reviews/${before}`).set(adminAuth());
     expect(removed.status).toBe(200);
     expect(removed.body.data.reviews).toHaveLength(before);
   });
@@ -177,28 +177,28 @@ describe('admin: reviews and updates', () => {
     ['rating below 1', { name: 'R', rating: 0, comment: 'x' }],
     ['missing comment', { name: 'R', rating: 3 }],
   ])('rejects a review with %s', async (_l, body) => {
-    expect((await request(app).post(`/api/books/${bookId()}/reviews`).set('Cookie', adminCookie()).send(body)).status).toBe(400);
+    expect((await request(app).post(`/api/books/${bookId()}/reviews`).set(adminAuth()).send(body)).status).toBe(400);
   });
 
   it('404s when removing a review index that does not exist', async () => {
-    expect((await request(app).delete(`/api/books/${bookId()}/reviews/99`).set('Cookie', adminCookie())).status).toBe(404);
+    expect((await request(app).delete(`/api/books/${bookId()}/reviews/99`).set(adminAuth())).status).toBe(404);
   });
 
   it('updates a book, regenerating the slug when the title changes; rejects an invalid partial update', async () => {
-    const created = await request(app).post('/api/books').set('Cookie', adminCookie()).send({ ...validBook(), title: 'Before Rename', isbn: '9784444444444' });
+    const created = await request(app).post('/api/books').set(adminAuth()).send({ ...validBook(), title: 'Before Rename', isbn: '9784444444444' });
     const id = created.body.data._id;
-    const ok = await request(app).patch(`/api/books/${id}`).set('Cookie', adminCookie()).send({ title: 'After Rename', price: 123 });
+    const ok = await request(app).patch(`/api/books/${id}`).set(adminAuth()).send({ title: 'After Rename', price: 123 });
     expect(ok.status).toBe(200);
     expect(ok.body.data.slug).toBe('after-rename');
     expect(ok.body.data.price).toBe(123);
-    const bad = await request(app).patch(`/api/books/${id}`).set('Cookie', adminCookie()).send({ price: -1 });
+    const bad = await request(app).patch(`/api/books/${id}`).set(adminAuth()).send({ price: -1 });
     expect(bad.status).toBe(400);
   });
 
   it('deletes a book and 404s on a second delete', async () => {
-    const created = await request(app).post('/api/books').set('Cookie', adminCookie()).send({ ...validBook(), title: 'Short Lived', isbn: '9785555555555' });
+    const created = await request(app).post('/api/books').set(adminAuth()).send({ ...validBook(), title: 'Short Lived', isbn: '9785555555555' });
     const id = created.body.data._id;
-    expect((await request(app).delete(`/api/books/${id}`).set('Cookie', adminCookie())).status).toBe(200);
-    expect((await request(app).delete(`/api/books/${id}`).set('Cookie', adminCookie())).status).toBe(404);
+    expect((await request(app).delete(`/api/books/${id}`).set(adminAuth())).status).toBe(200);
+    expect((await request(app).delete(`/api/books/${id}`).set(adminAuth())).status).toBe(404);
   });
 });

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { ContactMessage } from '../models/ContactMessage';
 import { ApiError } from '../utils/ApiError';
 import { asyncHandler } from '../utils/asyncHandler';
+import { audit } from '../services/auditService';
 
 export const submitContactMessage = asyncHandler(async (req: Request, res: Response) => {
   await ContactMessage.create(req.body);
@@ -41,5 +42,6 @@ export const markMessageRead = asyncHandler(async (req: Request, res: Response) 
 export const deleteContactMessage = asyncHandler(async (req: Request, res: Response) => {
   const message = await ContactMessage.findByIdAndDelete(req.params.id);
   if (!message) throw ApiError.notFound('Message not found');
+  await audit(req, { action: 'message.deleted', targetType: 'message', targetId: message.id, summary: `Deleted contact message “${message.subject}” from ${message.email}` });
   res.json({ success: true, message: 'Message deleted' });
 });

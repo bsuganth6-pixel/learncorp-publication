@@ -1,6 +1,6 @@
 import request from 'supertest';
 import app from '../../app';
-import { installFakeDb, seed, adminCookie } from '../../testing/fakeDb';
+import { installFakeDb, seed, adminAuth } from '../../testing/fakeDb';
 
 let fake: ReturnType<typeof installFakeDb>;
 beforeAll(() => { fake = installFakeDb(seed()); });
@@ -31,11 +31,11 @@ describe('POST /api/contact (4 of the 8 allowed submissions in this file)', () =
 
 describe('admin inbox', () => {
   it('lists messages and marks one read', async () => {
-    const list = await request(app).get('/api/contact?unread=true').set('Cookie', adminCookie());
+    const list = await request(app).get('/api/contact?unread=true').set(adminAuth());
     expect(list.status).toBe(200);
     expect(list.body.data.every((m: { read: boolean }) => m.read === false)).toBe(true);
     const id = list.body.data[0]._id;
-    const read = await request(app).patch(`/api/contact/${id}/read`).set('Cookie', adminCookie());
+    const read = await request(app).patch(`/api/contact/${id}/read`).set(adminAuth());
     expect(read.body.data.read).toBe(true);
   });
 });

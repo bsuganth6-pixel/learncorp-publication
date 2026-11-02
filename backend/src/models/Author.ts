@@ -9,6 +9,8 @@ export interface ISocialLinks {
 }
 
 export interface IAuthor extends Document {
+  /** Set when the profile belongs to a registered author account (created on first publication). */
+  user?: Types.ObjectId;
   name: string;
   slug: string;
   bio?: string;
@@ -21,6 +23,7 @@ export interface IAuthor extends Document {
 
 const authorSchema = new Schema<IAuthor>(
   {
+    user: { type: Schema.Types.ObjectId, ref: 'User' },
     name: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, lowercase: true, index: true },
     bio: { type: String, default: '' },
@@ -36,6 +39,9 @@ const authorSchema = new Schema<IAuthor>(
   },
   { timestamps: true }
 );
+
+// One public profile per account (sparse: profiles created by staff have no `user`).
+authorSchema.index({ user: 1 }, { unique: true, sparse: true });
 
 export const Author: Model<IAuthor> = model<IAuthor>('Author', authorSchema);
 export type AuthorId = Types.ObjectId;

@@ -11,11 +11,13 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
   let statusCode = 500;
   let message = 'Internal server error';
   let details: unknown;
+  let code: string | undefined;
 
   if (err instanceof ApiError) {
     statusCode = err.statusCode;
     message = err.message;
     details = err.details;
+    code = err.code;
   } else if (err instanceof MulterError) {
     statusCode = 400;
     message = err.code === 'LIMIT_FILE_SIZE' ? 'File is too large' : err.message;
@@ -32,19 +34,18 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
       statusCode = 409;
       const field = e.keyValue ? Object.keys(e.keyValue)[0] : 'field';
       message = `That ${field} is already in use`;
-    } else if (e.name === 'JsonWebTokenError' || e.name === 'TokenExpiredError') {
-      statusCode = 401;
-      message = 'Invalid or expired session';
     }
   }
 
-  if (process.env.NODE_ENV !== 'production') {
+  // Unexpected failures are always logged (message + stack only, never the request); expected 4xx are not.
+  if (statusCode >= 500 || process.env.NODE_ENV === 'development') {
     console.error(err);
   }
 
   res.status(statusCode).json({
     success: false,
     message,
+    ...(code ? { code } : {}),
     ...(details ? { details } : {}),
   });
 }

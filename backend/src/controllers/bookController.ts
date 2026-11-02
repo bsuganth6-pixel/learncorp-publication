@@ -4,8 +4,9 @@ import { Book, IBook } from '../models/Book';
 import { Author } from '../models/Author';
 import { ApiError } from '../utils/ApiError';
 import { asyncHandler } from '../utils/asyncHandler';
-import { toSlug } from '../utils/slug';
 import { escapeRegex } from '../utils/escapeRegex';
+import { uniqueBookSlug } from '../services/slugService';
+import { audit } from '../services/auditService';
 
 const SORT_MAP: Record<string, Record<string, 1 | -1>> = {
   newest: { createdAt: -1 },
@@ -105,20 +106,10 @@ export const getAdminBookById = asyncHandler(async (req: Request, res: Response)
   res.json({ success: true, data: book });
 });
 
-async function ensureUniqueSlug(title: string, ignoreId?: string): Promise<string> {
-  const base = toSlug(title);
-  let slug = base;
-  let counter = 1;
-  // eslint-disable-next-line no-await-in-loop
-  while (await Book.exists({ slug, ...(ignoreId ? { _id: { $ne: ignoreId } } : {}) })) {
-    slug = `${base}-${counter++}`;
-  }
-  return slug;
-}
-
 export const createBook = asyncHandler(async (req: Request, res: Response) => {
-  const slug = await ensureUniqueSlug(req.body.title);
+  const slug = await uniqueBookSlug(req.body.title);
   const book = await Book.create({ ...req.body, slug });
+  await audit(req, { action: 'book.created', targetType: 'book', targetId: book.id, summary: `Created book “${book.title}”` });
   res.status(201).json({ success: true, data: book });
 });
 
@@ -128,17 +119,19 @@ export const updateBook = asyncHandler(async (req: Request, res: Response) => {
 
   const updates = { ...req.body };
   if (updates.title && updates.title !== existing.title) {
-    updates.slug = await ensureUniqueSlug(updates.title, existing.id);
+    updates.slug = await uniqueBookSlug(updates.title, existing.id);
   }
 
   Object.assign(existing, updates);
   await existing.save();
+  await audit(req, { action: 'book.updated', targetType: 'book', targetId: existing.id, summary: `Updated book “${existing.title}”` });
   res.json({ success: true, data: existing });
 });
 
 export const deleteBook = asyncHandler(async (req: Request, res: Response) => {
   const book = await Book.findByIdAndDelete(req.params.id);
   if (!book) throw ApiError.notFound('Book not found');
+  await audit(req, { action: 'book.deleted', targetType: 'book', targetId: book.id, summary: `Deleted book “${book.title}”` });
   res.json({ success: true, message: 'Book deleted' });
 });
 
@@ -147,6 +140,7 @@ export const addReview = asyncHandler(async (req: Request, res: Response) => {
   if (!book) throw ApiError.notFound('Book not found');
   book.reviews.push({ ...req.body, createdAt: new Date() });
   await book.save();
+  await audit(req, { action: 'book.review_added', targetType: 'book', targetId: book.id, summary: `Added a review to “${book.title}”` });
   res.status(201).json({ success: true, data: book });
 });
 
@@ -159,5 +153,6 @@ export const deleteReview = asyncHandler(async (req: Request, res: Response) => 
   }
   book.reviews.splice(index, 1);
   await book.save();
+  await audit(req, { action: 'book.review_deleted', targetType: 'book', targetId: book.id, summary: `Removed a review from “${book.title}”` });
   res.json({ success: true, data: book });
 });

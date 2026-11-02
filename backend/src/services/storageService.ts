@@ -17,7 +17,10 @@ export async function uploadPrivateFile(
       'File storage is not configured yet. Set STORAGE_* in your .env file.'
     );
   }
-  const key = `${folder}/${randomUUID()}-${originalName.replace(/\s+/g, '-')}`;
+  // Only the extension-bearing tail of the client's file name is kept, and only safe characters, so no
+  // path tricks or odd characters ever reach the object key.
+  const safeName = originalName.replace(/[^A-Za-z0-9._-]+/g, '-').replace(/^[.-]+/, '').slice(-80) || 'file';
+  const key = `${folder}/${randomUUID()}-${safeName}`;
   await s3.send(
     new PutObjectCommand({
       Bucket: storageBucket,
@@ -40,4 +43,14 @@ export async function getSignedFileUrl(key: string, expiresInSeconds = 300): Pro
 export async function deletePrivateFile(key: string): Promise<void> {
   if (!isStorageConfigured) return;
   await s3.send(new DeleteObjectCommand({ Bucket: storageBucket, Key: key }));
+}
+
+/** Reads a private object into memory. Only used for small images (a manuscript's cover) being promoted to the catalogue. */
+export async function readPrivateFile(key: string): Promise<Buffer> {
+  if (!isStorageConfigured) {
+    throw ApiError.internal('File storage is not configured yet.');
+  }
+  const object = await s3.send(new GetObjectCommand({ Bucket: storageBucket, Key: key }));
+  if (!object.Body) throw ApiError.notFound('File not found in storage');
+  return Buffer.from(await object.Body.transformToByteArray());
 }

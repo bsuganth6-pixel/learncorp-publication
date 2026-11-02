@@ -1,10 +1,10 @@
 import request from 'supertest';
 import app from '../../app';
 
-// Every mutating / admin-only route must reject an unauthenticated request
-// before it ever reaches a controller (the API is the real security boundary;
-// the frontend only hides these routes).
-describe('admin routes reject unauthenticated requests', () => {
+// Every protected route (admin-only, author-only, or any signed-in user) must reject an
+// unauthenticated request before it reaches a controller: the API is the real security boundary,
+// the frontend only hides things. Role checks with a real session live in the *.int.test.ts suites.
+describe('protected routes reject unauthenticated requests', () => {
   const ID = '000000000000000000000000';
   const cases: Array<[string, string]> = [
     ['get', '/api/books/admin/all'],
@@ -30,8 +30,29 @@ describe('admin routes reject unauthenticated requests', () => {
     ['patch', `/api/testimonials/${ID}`],
     ['delete', `/api/testimonials/${ID}`],
     ['get', '/api/dashboard/stats'],
-    ['post', '/api/auth/logout'],
+    ['post', `/api/manuscripts/${ID}/publish`],
+    ['get', '/api/users'],
+    ['get', `/api/users/${ID}`],
+    ['patch', `/api/users/${ID}/status`],
+    ['post', `/api/users/${ID}/revoke-sessions`],
+    ['get', '/api/audit-logs'],
+    // author-only
+    ['post', '/api/manuscripts'],
+    ['get', '/api/manuscripts/mine'],
+    ['get', `/api/manuscripts/mine/${ID}`],
+    ['get', `/api/manuscripts/mine/${ID}/file-url`],
+    ['put', `/api/manuscripts/mine/${ID}`],
+    // any signed-in user
     ['get', '/api/auth/me'],
+    ['post', '/api/auth/logout-all'],
+    ['patch', '/api/auth/profile'],
+    ['post', '/api/auth/change-password'],
+    ['post', '/api/auth/resend-verification'],
+    ['get', '/api/auth/sessions'],
+    ['delete', `/api/auth/sessions/${ID}`],
+    ['get', '/api/notifications'],
+    ['post', '/api/notifications/read-all'],
+    ['patch', `/api/notifications/${ID}/read`],
   ];
 
   it.each(cases)('%s %s -> 401 without a session', async (method, path) => {

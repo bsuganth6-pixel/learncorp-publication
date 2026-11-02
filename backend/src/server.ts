@@ -2,12 +2,15 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import app from './app';
-import { connectDB } from './config/db';
+import { connectDB, prepareDatabase } from './config/db';
+import { assertRuntimeConfig } from './config/env';
 
 const PORT = process.env.PORT || 5000;
 
 async function start() {
+  assertRuntimeConfig();
   await connectDB();
+  await prepareDatabase();
   app.listen(PORT, () => {
     console.log(`[server] Listening on port ${PORT} (${process.env.NODE_ENV || 'development'})`);
   });

@@ -7,6 +7,8 @@ import morgan from 'morgan';
 import routes from './routes';
 import { notFound, errorHandler } from './middleware/errorHandler';
 import { apiLimiter } from './middleware/rateLimiter';
+import { csrfGuard } from './middleware/csrf';
+import { allowedOrigins } from './config/auth';
 
 const app: Application = express();
 
@@ -20,8 +22,10 @@ app.set('trust proxy', Number.isInteger(trustProxyHops) && trustProxyHops >= 0 ?
 app.use(helmet());
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    origin: allowedOrigins(),
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'X-Requested-With'],
   })
 );
 app.use(express.json({ limit: '2mb' }));
@@ -32,7 +36,8 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
 
-app.use('/api', apiLimiter, routes);
+// csrfGuard needs the parsed cookies, so it sits after cookieParser and in front of every route.
+app.use('/api', apiLimiter, csrfGuard, routes);
 
 app.get('/health', (_req, res) => {
   res.json({ success: true, status: 'ok', timestamp: new Date().toISOString() });

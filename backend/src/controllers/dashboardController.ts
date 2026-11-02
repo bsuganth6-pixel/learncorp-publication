@@ -4,6 +4,7 @@ import { Author } from '../models/Author';
 import { Manuscript } from '../models/Manuscript';
 import { ContactMessage } from '../models/ContactMessage';
 import { Testimonial } from '../models/Testimonial';
+import { User } from '../models/User';
 import { asyncHandler } from '../utils/asyncHandler';
 
 export const getStats = asyncHandler(async (_req: Request, res: Response) => {
@@ -14,6 +15,7 @@ export const getStats = asyncHandler(async (_req: Request, res: Response) => {
     manuscriptsByStatus,
     unreadMessages,
     pendingTestimonials,
+    registeredAuthors,
   ] = await Promise.all([
     Book.countDocuments(),
     Book.countDocuments({ status: 'published' }),
@@ -21,6 +23,7 @@ export const getStats = asyncHandler(async (_req: Request, res: Response) => {
     Manuscript.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
     ContactMessage.countDocuments({ read: false }),
     Testimonial.countDocuments({ status: 'unpublished' }),
+    User.countDocuments({ role: 'author' }),
   ]);
 
   const manuscriptCounts = manuscriptsByStatus.reduce(
@@ -41,6 +44,7 @@ export const getStats = asyncHandler(async (_req: Request, res: Response) => {
       manuscripts: manuscriptCounts,
       unreadMessages,
       pendingTestimonials,
+      registeredAuthors,
     },
   });
 });

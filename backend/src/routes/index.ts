@@ -7,6 +7,9 @@ import contactRoutes from './contactRoutes';
 import testimonialRoutes from './testimonialRoutes';
 import dashboardRoutes from './dashboardRoutes';
 import statsRoutes from './statsRoutes';
+import userRoutes from './userRoutes';
+import auditRoutes from './auditRoutes';
+import notificationRoutes from './notificationRoutes';
 
 const router = Router();
 
@@ -18,5 +21,8 @@ router.use('/contact', contactRoutes);
 router.use('/testimonials', testimonialRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/stats', statsRoutes);
+router.use('/users', userRoutes);
+router.use('/audit-logs', auditRoutes);
+router.use('/notifications', notificationRoutes);
 
 export default router;

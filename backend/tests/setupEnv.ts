@@ -1,7 +1,7 @@
-// Test env — deliberately no MONGODB_URI: these tests never connect to a database
-// (see tests/README.md for what that does and doesn't cover).
-process.env.JWT_SECRET = 'test-secret-not-for-production';
-process.env.JWT_EXPIRES_IN = '7d';
+// Test env. Unit tests never connect to a database; the *.int.test.ts suites do, through
+// MONGODB_TEST_URI (see tests/README.md). Email never leaves the process: the console provider
+// collects messages in an in-memory outbox that tests read.
 process.env.COOKIE_NAME = 'bp_session';
 process.env.NODE_ENV = 'test';
 process.env.CLIENT_URL = 'http://localhost:3000';
+process.env.EMAIL_PROVIDER = 'console';

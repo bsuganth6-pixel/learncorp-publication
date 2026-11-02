@@ -6,21 +6,26 @@
  * and implements just enough filtering/sorting/paging for what the controllers
  * ask for. It does NOT test MongoDB itself (indexes, text search, uniqueness).
  */
-import jwt from 'jsonwebtoken';
 import { Book, computeRatingsAvg } from '../models/Book';
 import { Author } from '../models/Author';
 import { Testimonial } from '../models/Testimonial';
 import { Manuscript } from '../models/Manuscript';
 import { ContactMessage } from '../models/ContactMessage';
 import { User } from '../models/User';
+import { Session } from '../models/Session';
+import { AuditLog } from '../models/AuditLog';
+import { hashToken } from '../utils/tokens';
 
 type Doc = Record<string, any>;
 
 export const ADMIN_PASSWORD = 'correct-horse-battery';
 export const ADMIN = { id: 'aaaaaaaaaaaaaaaaaaaaaaaa', name: 'Test Admin', email: 'admin@example.com', role: 'superadmin' };
+/** The one pre-authenticated admin session these in-memory tests use (the real session logic runs against it). */
+export const ADMIN_SESSION_TOKEN = 'fake-admin-session-token-0123456789abcdef0123456789';
 
 export interface FakeData {
   books: Doc[]; authors: Doc[]; testimonials: Doc[]; manuscripts: Doc[]; messages: Doc[];
+  users: Doc[]; auditLogs: Doc[];
 }
 
 const hex = (n: number) => n.toString(16).padStart(24, '0');
@@ -71,6 +76,12 @@ export function seed(): FakeData {
       { _id: hex(301), authorName: 'Sam Writer', email: 'sam@example.com', phone: '9876543210', bookTitle: 'First Draft', category: 'Fiction', language: 'English', pageCount: 210, description: 'A novel about a lighthouse keeper.', authorBio: 'Sam writes.', format: 'Paperback', manuscriptFileUrl: 'x', status: 'Submitted', createdAt: '2026-04-01T00:00:00.000Z' },
       { _id: hex(302), authorName: 'Lee Poet', email: 'lee@example.com', phone: '9123456780', bookTitle: 'Verses', category: 'Poetry', language: 'English', description: 'Collected poems of a decade.', authorBio: 'Lee writes poems.', format: 'eBook', manuscriptFileUrl: 'y', status: 'Under Review', createdAt: '2026-04-02T00:00:00.000Z' },
     ],
+    users: [
+      { _id: ADMIN.id, ...ADMIN, status: 'active', emailVerified: true },
+      { _id: hex(501), name: 'Sam Writer', email: 'sam@example.com', role: 'author', status: 'active', emailVerified: true },
+      { _id: hex(502), name: 'Lee Poet', email: 'lee@example.com', role: 'author', status: 'active', emailVerified: false },
+    ],
+    auditLogs: [],
     messages: [
       { _id: hex(401), name: 'Visitor One', email: 'v1@example.com', phone: '', subject: 'Pricing?', message: 'How are services priced for a first book?', read: false, createdAt: '2026-05-01T00:00:00.000Z' },
       { _id: hex(402), name: 'Visitor Two', email: 'v2@example.com', phone: '', subject: 'Thanks', message: 'Thanks for the quick reply earlier.', read: true, createdAt: '2026-05-02T00:00:00.000Z' },
@@ -200,19 +211,23 @@ export function installFakeDb(data: FakeData): { restore: () => void; data: Fake
   patch(ContactMessage, 'findByIdAndUpdate', update(data.messages));
   patch(ContactMessage, 'findByIdAndDelete', remove(data.messages));
 
-  const adminDoc = (withPassword: boolean) => ({
-    ...ADMIN, _id: ADMIN.id,
-    ...(withPassword ? { comparePassword: async (candidate: string) => candidate === ADMIN_PASSWORD } : {}),
-  });
-  patch(User, 'findOne', (f: Doc) => ({
-    select: async () => (f.email === ADMIN.email ? adminDoc(true) : null),
-    then: (res: any, rej: any) => Promise.resolve(f.email === ADMIN.email ? adminDoc(false) : null).then(res, rej),
-  }));
-  patch(User, 'findById', async (id: string) => (id === ADMIN.id ? adminDoc(false) : null));
+  // Sessions: the real resolveSession() runs; only its two lookups are answered from memory.
+  const adminSession = {
+    _id: 'bbbbbbbbbbbbbbbbbbbbbbbb', id: 'bbbbbbbbbbbbbbbbbbbbbbbb', user: ADMIN.id, scope: 'admin', persistent: false,
+    tokenHash: hashToken(ADMIN_SESSION_TOKEN), revokedAt: null,
+    get lastSeenAt() { return new Date(); }, get expiresAt() { return new Date(Date.now() + 3_600_000); },
+  };
+  patch(Session, 'findOne', async (f: Doc) => (f.tokenHash === adminSession.tokenHash ? adminSession : null));
+  patch(Session, 'updateOne', async () => ({ modifiedCount: 0 }));
+  patch(User, 'findById', async (id: string) => data.users.find((u) => String(u._id) === String(id)) ?? null);
+  patch(User, 'countDocuments', count(data.users));
+  patch(AuditLog, 'create', create(data.auditLogs));
 
   return { data, restore: () => originals.reverse().forEach((r) => r()) };
 }
 
-/** Cookie header for an authenticated admin (signed with the test JWT secret). */
-export const adminCookie = (): string =>
-  `${process.env.COOKIE_NAME || 'bp_session'}=${jwt.sign({ id: ADMIN.id, role: ADMIN.role }, process.env.JWT_SECRET as string, { expiresIn: '1h' })}`;
+/** Cookie header for the pre-authenticated admin session. */
+export const adminCookie = (): string => `${process.env.COOKIE_NAME || 'bp_session'}=${ADMIN_SESSION_TOKEN}`;
+
+/** Headers a browser session sends: the cookie plus the CSRF header the API requires on writes. */
+export const adminAuth = (): Record<string, string> => ({ Cookie: adminCookie(), 'X-Requested-With': 'LearnCorp' });

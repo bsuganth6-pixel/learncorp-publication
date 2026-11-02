@@ -3,20 +3,10 @@ import { Author } from '../models/Author';
 import { Book } from '../models/Book';
 import { ApiError } from '../utils/ApiError';
 import { asyncHandler } from '../utils/asyncHandler';
-import { toSlug } from '../utils/slug';
 import { escapeRegex } from '../utils/escapeRegex';
+import { uniqueAuthorSlug } from '../services/slugService';
+import { audit } from '../services/auditService';
 import type { AuthorQuery } from '../validators/authorValidators';
-
-async function ensureUniqueSlug(name: string, ignoreId?: string): Promise<string> {
-  const base = toSlug(name);
-  let slug = base;
-  let counter = 1;
-  // eslint-disable-next-line no-await-in-loop
-  while (await Author.exists({ slug, ...(ignoreId ? { _id: { $ne: ignoreId } } : {}) })) {
-    slug = `${base}-${counter++}`;
-  }
-  return slug;
-}
 
 export const getAuthors = asyncHandler(async (req: Request, res: Response) => {
   // Already validated and coerced by authorQuerySchema (routes/authorRoutes.ts).
@@ -49,8 +39,9 @@ export const getAuthorBySlug = asyncHandler(async (req: Request, res: Response) 
 });
 
 export const createAuthor = asyncHandler(async (req: Request, res: Response) => {
-  const slug = await ensureUniqueSlug(req.body.name);
+  const slug = await uniqueAuthorSlug(req.body.name);
   const author = await Author.create({ ...req.body, slug });
+  await audit(req, { action: 'author.created', targetType: 'author', targetId: author.id, summary: `Created author profile “${author.name}”` });
   res.status(201).json({ success: true, data: author });
 });
 
@@ -60,11 +51,12 @@ export const updateAuthor = asyncHandler(async (req: Request, res: Response) => 
 
   const updates = { ...req.body };
   if (updates.name && updates.name !== existing.name) {
-    updates.slug = await ensureUniqueSlug(updates.name, existing.id);
+    updates.slug = await uniqueAuthorSlug(updates.name, existing.id);
   }
 
   Object.assign(existing, updates);
   await existing.save();
+  await audit(req, { action: 'author.updated', targetType: 'author', targetId: existing.id, summary: `Updated author profile “${existing.name}”` });
   res.json({ success: true, data: existing });
 });
 
@@ -77,5 +69,6 @@ export const deleteAuthor = asyncHandler(async (req: Request, res: Response) => 
   }
   const author = await Author.findByIdAndDelete(req.params.id);
   if (!author) throw ApiError.notFound('Author not found');
+  await audit(req, { action: 'author.deleted', targetType: 'author', targetId: author.id, summary: `Deleted author profile “${author.name}”` });
   res.json({ success: true, message: 'Author deleted' });
 });
