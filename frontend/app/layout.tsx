@@ -3,6 +3,8 @@ import localFont from 'next/font/local';
 import './globals.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import ChromeGate from '@/components/layout/ChromeGate';
+import { AuthProvider } from '@/lib/auth-context';
 import { getSiteUrl } from '@/lib/site-url';
 
 // Self-hosted (not next/font/google) so the build has no external network
@@ -41,10 +43,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${fraunces.variable} ${inter.variable}`}>
       <body className="flex min-h-screen flex-col font-sans antialiased">
-        <a href="#main-content" className="skip-link">Skip to content</a>
-        <Header />
-        <main id="main-content" className="flex-1">{children}</main>
-        <Footer />
+        <AuthProvider>
+          <a href="#main-content" className="skip-link">Skip to content</a>
+          <Header />
+          <main id="main-content" className="flex-1">{children}</main>
+          <ChromeGate><Footer /></ChromeGate>
+        </AuthProvider>
       </body>
     </html>
   );

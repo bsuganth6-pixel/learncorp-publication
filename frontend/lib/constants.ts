@@ -16,4 +16,6 @@ export const SORT_OPTIONS = [
   { value: 'title', label: 'Title: A–Z' },
 ] as const;
 
-export const MANUSCRIPT_STATUSES = ['Submitted', 'Under Review', 'Accepted', 'Rejected', 'Published'] as const;
+export const MANUSCRIPT_STATUSES = [
+  'Submitted', 'Under Review', 'Changes Requested', 'Accepted', 'Rejected', 'Published',
+] as const;

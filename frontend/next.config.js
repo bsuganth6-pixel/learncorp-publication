@@ -37,5 +37,19 @@ module.exports = (phase) => {
     async rewrites() {
       return [{ source: '/api/:path*', destination: `${apiOrigin}/api/:path*` }];
     },
+    async headers() {
+      // The reset and confirmation links carry a one-time token in the URL: never leak it in a
+      // Referer header, and never let a shared cache keep these pages. Private areas aren't cached either.
+      const privateHeaders = [{ key: 'Cache-Control', value: 'private, no-store' }];
+      return [
+        { source: '/reset-password', headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }, ...privateHeaders] },
+        { source: '/verify-email', headers: [{ key: 'Referrer-Policy', value: 'no-referrer' }, ...privateHeaders] },
+        { source: '/login', headers: privateHeaders },
+        { source: '/register', headers: privateHeaders },
+        { source: '/account', headers: privateHeaders },
+        { source: '/author/:path*', headers: privateHeaders },
+        { source: '/admin/:path*', headers: privateHeaders },
+      ];
+    },
   };
 };

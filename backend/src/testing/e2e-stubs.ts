@@ -6,9 +6,14 @@ const stub = (relative: string, exports: Record<string, unknown>) => {
   require.cache[filename] = { id: filename, filename, loaded: true, exports } as any;
 };
 
+const PNG_1X1 = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+
 stub('../services/storageService', {
-  uploadPrivateFile: async (_b: Buffer, name: string) => ({ key: `fake/${name}`, url: `https://storage.invalid/fake/${name}` }),
+  uploadPrivateFile: async (_b: Buffer, name: string, _mime: string, folder: string) => ({
+    key: `${folder}/fake-${name}`, url: `https://storage.invalid/${folder}/fake-${name}`,
+  }),
   getSignedFileUrl: async (key: string) => `https://storage.invalid/signed/${key}`,
+  readPrivateFile: async () => PNG_1X1,
   deletePrivateFile: async () => undefined,
 });
 stub('../services/cloudinaryService', {

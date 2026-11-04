@@ -1,5 +1,6 @@
 import type {
-  Author, Book, ContactMessage, Manuscript, Paginated, Testimonial, AdminUser,
+  Author, Book, ContactMessage, Manuscript, Paginated, Testimonial, AuthUser, AuthorSubmission,
+  AppNotification, ManagedUser, AuditEntry, SessionInfo, ManuscriptStatus,
 } from './types';
 
 // Browser: same-origin /api (proxied to the API by next.config.js, so the
@@ -12,12 +13,33 @@ const API_URL =
 export class ApiClientError extends Error {
   status: number;
   details?: unknown;
-  constructor(status: number, message: string, details?: unknown) {
+  /** Stable machine-readable reason (e.g. EMAIL_NOT_VERIFIED) for cases the UI handles specially. */
+  code?: string;
+  constructor(status: number, message: string, details?: unknown, code?: string) {
     super(message);
     this.status = status;
     this.details = details;
+    this.code = code;
+  }
+
+  /** Field-level messages from a 400 validation response, e.g. { email: ['Enter a valid email'] }. */
+  get fieldErrors(): Record<string, string> {
+    const out: Record<string, string> = {};
+    if (this.details && typeof this.details === 'object') {
+      for (const [field, messages] of Object.entries(this.details as Record<string, unknown>)) {
+        if (Array.isArray(messages) && typeof messages[0] === 'string') out[field] = messages[0];
+      }
+    }
+    return out;
   }
 }
+
+/** Fired when the API says the session is gone, so every part of the UI can drop its signed-in state. */
+export const UNAUTHORIZED_EVENT = 'lc:unauthorized';
+/** Sent with every browser request. The API requires it on writes (CSRF defence). */
+const CLIENT_HEADER = { 'X-Requested-With': 'LearnCorp' };
+// A wrong password is also a 401, but it does not mean the session ended.
+const SIGN_IN_PATHS = ['/auth/login', '/auth/admin/login'];
 
 interface FetchOptions extends RequestInit {
   revalidate?: number | false;
@@ -42,6 +64,7 @@ async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T>
       signal: controller.signal,
       credentials: 'include',
       headers: {
+        ...(typeof window !== 'undefined' ? CLIENT_HEADER : {}),
         ...(init.body && !(init.body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}),
         ...init.headers,
       },
@@ -68,7 +91,15 @@ async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T>
       body && typeof body === 'object' && 'message' in body
         ? String((body as { message: unknown }).message)
         : `Request failed with status ${res.status}`;
-    throw new ApiClientError(res.status, message, (body as { details?: unknown })?.details);
+    if (res.status === 401 && typeof window !== 'undefined' && !SIGN_IN_PATHS.includes(path)) {
+      window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
+    }
+    throw new ApiClientError(
+      res.status,
+      message,
+      (body as { details?: unknown })?.details,
+      (body as { code?: string })?.code
+    );
   }
 
   return body as T;
@@ -156,12 +187,75 @@ export const getTestimonials = (revalidate = 300) =>
   safe(() => apiFetch<{ data: Testimonial[] }>(`/testimonials`, { revalidate }), { data: [] }, 'getTestimonials');
 
 // ---- Auth (client-side, cookie based) ----
-export const login = (email: string, password: string) =>
-  apiFetch<{ data: AdminUser }>(`/auth/login`, { method: 'POST', body: JSON.stringify({ email, password }) });
+export interface RegisterPayload {
+  name: string; email: string; phone?: string; password: string; confirmPassword: string; acceptTerms: boolean;
+}
+
+export const register = (payload: RegisterPayload) =>
+  apiFetch<{ data: AuthUser; emailSent: boolean }>(`/auth/register`, { method: 'POST', body: JSON.stringify(payload) });
+
+export const login = (email: string, password: string, rememberMe = false) =>
+  apiFetch<{ data: AuthUser }>(`/auth/login`, { method: 'POST', body: JSON.stringify({ email, password, rememberMe }) });
+
+export const adminLogin = (email: string, password: string) =>
+  apiFetch<{ data: AuthUser }>(`/auth/admin/login`, { method: 'POST', body: JSON.stringify({ email, password }) });
 
 export const logout = () => apiFetch<{ success: boolean }>(`/auth/logout`, { method: 'POST' });
 
-export const getMe = () => apiFetch<{ data: AdminUser }>(`/auth/me`, { cache: 'no-store' });
+export const logoutEverywhere = () => apiFetch<{ success: boolean }>(`/auth/logout-all`, { method: 'POST' });
+
+export const getMe = () =>
+  apiFetch<{ data: AuthUser; session: { scope: 'author' | 'admin'; expiresAt: string } }>(`/auth/me`, { cache: 'no-store' });
+
+export const verifyEmail = (token: string) =>
+  apiFetch<{ success: boolean; message: string }>(`/auth/verify-email`, { method: 'POST', body: JSON.stringify({ token }) });
+
+export const resendVerification = () =>
+  apiFetch<{ success: boolean; message: string; alreadyVerified?: boolean }>(`/auth/resend-verification`, { method: 'POST' });
+
+export const forgotPassword = (email: string) =>
+  apiFetch<{ success: boolean; message: string }>(`/auth/forgot-password`, { method: 'POST', body: JSON.stringify({ email }) });
+
+export const validateResetToken = (token: string) =>
+  apiFetch<{ success: boolean; valid: boolean }>(`/auth/reset-password/validate`, { method: 'POST', body: JSON.stringify({ token }) });
+
+export const resetPassword = (payload: { token: string; password: string; confirmPassword: string }) =>
+  apiFetch<{ success: boolean; message: string }>(`/auth/reset-password`, { method: 'POST', body: JSON.stringify(payload) });
+
+export const updateProfile = (payload: Partial<Pick<AuthUser, 'name' | 'phone' | 'bio' | 'website'>>) =>
+  apiFetch<{ data: AuthUser }>(`/auth/profile`, { method: 'PATCH', body: JSON.stringify(payload) });
+
+export const changePassword = (payload: { currentPassword: string; password: string; confirmPassword: string }) =>
+  apiFetch<{ success: boolean; message: string }>(`/auth/change-password`, { method: 'POST', body: JSON.stringify(payload) });
+
+export const getSessions = () => apiFetch<{ data: SessionInfo[] }>(`/auth/sessions`, { cache: 'no-store' });
+
+export const revokeSession = (id: string) => apiFetch<{ success: boolean }>(`/auth/sessions/${id}`, { method: 'DELETE' });
+
+// ---- Notifications (any signed-in account) ----
+export const getNotifications = (query: { page?: number; limit?: number; unread?: boolean } = {}) =>
+  apiFetch<Paginated<AppNotification> & { unreadCount: number }>(`/notifications${toQueryString(query)}`, { cache: 'no-store' });
+
+export const markNotificationRead = (id: string) => apiFetch<{ success: boolean }>(`/notifications/${id}/read`, { method: 'PATCH' });
+
+export const markAllNotificationsRead = () => apiFetch<{ success: boolean }>(`/notifications/read-all`, { method: 'POST' });
+
+// ---- Author: their own submissions ----
+export const getMySubmissions = (query: { page?: number; limit?: number; status?: string } = {}) =>
+  apiFetch<Paginated<AuthorSubmission>>(`/manuscripts/mine${toQueryString(query)}`, { cache: 'no-store' });
+
+export const getMySubmission = (id: string) =>
+  apiFetch<{ data: AuthorSubmission }>(`/manuscripts/mine/${id}`, { cache: 'no-store' });
+
+export const getMySubmissionFileUrl = (id: string, file: 'manuscript' | 'cover' = 'manuscript') =>
+  apiFetch<{ url: string }>(`/manuscripts/mine/${id}/file-url?file=${file}`, { cache: 'no-store' });
+
+export const resubmitManuscript = (id: string, formData: FormData) =>
+  apiFetch<{ success: boolean; message: string; data: AuthorSubmission }>(`/manuscripts/mine/${id}`, {
+    method: 'PUT',
+    body: formData,
+    timeoutMs: 120_000,
+  });
 
 // ---- Public writes ----
 export const submitContactMessage = (payload: {
@@ -205,6 +299,7 @@ export const getDashboardStats = () =>
     data: {
       totalBooks: number; publishedBooks: number; draftBooks: number; totalAuthors: number;
       manuscripts: Record<string, number>; unreadMessages: number; pendingTestimonials: number;
+      registeredAuthors: number;
     };
   }>(`/dashboard/stats`, { cache: 'no-store' });
 
@@ -231,8 +326,29 @@ export const updateAuthor = (id: string, payload: Record<string, unknown>) =>
 
 export const deleteAuthor = (id: string) => apiFetch<{ success: boolean }>(`/authors/${id}`, { method: 'DELETE' });
 
-export const updateManuscriptStatus = (id: string, status: string) =>
-  apiFetch<{ data: Manuscript }>(`/manuscripts/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+export const updateManuscriptStatus = (id: string, status: ManuscriptStatus, note?: string) =>
+  apiFetch<{ data: Manuscript }>(`/manuscripts/${id}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status, ...(note ? { note } : {}) }),
+  });
+
+export const publishManuscript = (id: string, payload: { isbn: string; price: number; publicationDate?: string; coverImageUrl?: string }) =>
+  apiFetch<{ data: Manuscript; book: { id: string; slug: string } }>(`/manuscripts/${id}/publish`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+export const getUsers = (query: { page?: number; role?: string; status?: string; search?: string } = {}) =>
+  apiFetch<Paginated<ManagedUser>>(`/users${toQueryString(query)}`, { cache: 'no-store' });
+
+export const setUserStatus = (id: string, status: 'active' | 'suspended', reason?: string) =>
+  apiFetch<{ data: ManagedUser }>(`/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status, ...(reason ? { reason } : {}) }) });
+
+export const revokeUserSessions = (id: string) =>
+  apiFetch<{ success: boolean; revoked: number }>(`/users/${id}/revoke-sessions`, { method: 'POST' });
+
+export const getAuditLog = (query: { page?: number; action?: string; search?: string } = {}) =>
+  apiFetch<Paginated<AuditEntry>>(`/audit-logs${toQueryString(query)}`, { cache: 'no-store' });
 
 export const markMessageRead = (id: string) =>
   apiFetch<{ data: ContactMessage }>(`/contact/${id}/read`, { method: 'PATCH' });

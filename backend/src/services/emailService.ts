@@ -24,7 +24,11 @@ function activeProvider(): Provider | null {
 
 export const isEmailEnabled = (): boolean => activeProvider() !== null;
 
-/** Messages "sent" while NODE_ENV=test, so tests can read the links that real users would receive. */
+/**
+ * Messages "sent" while NODE_ENV=test (or EMAIL_CAPTURE=1, used by the local browser-test server), so
+ * tests can read the links that real users would receive. Capture only ever happens on the console
+ * provider, which production refuses to use, so it cannot hold real mail.
+ */
 const testOutbox: EmailMessage[] = [];
 export const getTestOutbox = (): readonly EmailMessage[] => testOutbox;
 export const clearTestOutbox = (): void => {
@@ -55,7 +59,7 @@ export async function sendEmail(message: EmailMessage): Promise<void> {
   if (!provider) throw new EmailNotConfiguredError();
 
   if (provider === 'console') {
-    if (process.env.NODE_ENV === 'test') {
+    if (process.env.NODE_ENV === 'test' || process.env.EMAIL_CAPTURE === '1') {
       testOutbox.push(message);
     } else {
       console.log(`\n[email:console] To: ${message.to}\nSubject: ${message.subject}\n\n${message.text}\n`);

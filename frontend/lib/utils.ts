@@ -10,6 +10,10 @@ export function formatDate(date: string | Date): string {
   );
 }
 
+export function formatDateTime(date: string | Date): string {
+  return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(date));
+}
+
 export function cn(...classes: Array<string | false | null | undefined>): string {
   return classes.filter(Boolean).join(' ');
 }

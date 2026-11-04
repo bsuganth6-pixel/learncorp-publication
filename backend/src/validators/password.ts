@@ -21,7 +21,8 @@ export const passwordSchema = z
   .refine((v) => Buffer.byteLength(v, 'utf8') <= PASSWORD_RULES.maxBytes, {
     message: `Use at most ${PASSWORD_RULES.maxBytes} characters`,
   })
-  .refine((v) => /[A-Za-z]/.test(v) && /\d/.test(v), { message: 'Include at least one letter and one number' })
+  // Unicode-aware: a password in Devanagari, Tamil or accented Latin letters is as good as one in A-Z.
+  .refine((v) => /\p{L}/u.test(v) && /\p{N}/u.test(v), { message: 'Include at least one letter and one number' })
   .refine((v) => !COMMON_PASSWORDS.has(v.toLowerCase()), { message: 'That password is too common — choose another' });
 
 /** Same rules as a plain function, for scripts (admin provisioning) that don't go through Zod. */

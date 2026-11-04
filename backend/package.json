@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "seed:admin": "tsx src/scripts/seedAdmin.ts",
     "test": "jest --testPathIgnorePatterns '\\.int\\.test\\.ts$'",
-    "dev:fake": "tsx src/testing/e2e-server.ts",
+    "dev:e2e": "tsx src/testing/e2e-server.ts",
     "test:integration": "jest --testPathPatterns '\\.int\\.test\\.ts$' --runInBand",
     "test:all": "npm test && npm run test:integration"
   },

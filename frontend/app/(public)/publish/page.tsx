@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import ManuscriptForm from '@/components/forms/ManuscriptForm';
+import PublishGate from '@/components/author/PublishGate';
 import SectionHeading from '@/components/ui/SectionHeading';
 
 export const metadata: Metadata = {
@@ -32,11 +32,8 @@ export default function PublishPage() {
 
       <div className="mt-16 rounded-sm border border-rule bg-surface p-6 shadow-card sm:p-10">
         <h2 className="font-display text-2xl text-ink">Manuscript Submission</h2>
-        <p className="mt-2 text-sm text-ink-soft">
-          Tell us about you and your book — our editorial team reviews every submission.
-        </p>
-        <div className="mt-8">
-          <ManuscriptForm />
+        <div className="mt-4">
+          <PublishGate />
         </div>
       </div>
     </div>

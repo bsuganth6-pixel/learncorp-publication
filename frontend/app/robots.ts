@@ -6,7 +6,13 @@ const SITE_URL = getSiteUrl();
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: [{ userAgent: '*', allow: '/', disallow: '/admin/' }],
+    rules: [
+      {
+        userAgent: '*',
+        allow: '/',
+        disallow: ['/admin/', '/author/', '/account', '/login', '/register', '/forgot-password', '/reset-password', '/verify-email'],
+      },
+    ],
     sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }
