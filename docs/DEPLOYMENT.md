@@ -9,8 +9,9 @@ Browser ──▶ Vercel  (Next.js, frontend/)  ── /api/* rewrite ──▶ 
 ## Why it is laid out this way
 
 - **The browser only talks to the site's own origin.** `frontend/next.config.js` proxies `/api/*` to the API, so the
-  session cookie (`httpOnly`, `Secure`, `SameSite=Strict`) is first-party. With the API on a different site that cookie
-  would never be sent, and the admin route guard in `frontend/middleware.ts` could never see it.
+  session cookie (`httpOnly`, `Secure`; `SameSite=Strict` for administrators, `Lax` for authors so a link in one of our
+  emails still arrives signed in) is first-party. With the API on a different site that cookie would never be sent, and
+  the route guards in `frontend/middleware.ts` and the author/admin layouts could never see it.
 - **The API is a normal long-running Node server, not a Vercel Function.** Vercel Functions reject request bodies over
   4.5 MB; manuscripts may be up to 25 MB each. An earlier revision of this repo had a root `vercel.json` that deployed the
   API as a Vercel "service"; it was removed for that reason. A single process also keeps the in-memory rate limiter
@@ -59,8 +60,10 @@ admins download through signed links that expire after 5 minutes.
 ## 4. API on Render
 
 **Blueprint (recommended):** Render → **New → Blueprint** → pick this repository. It reads `render.yaml`
-(service `learncorp-api`, root directory `backend`). Fill in the prompted secrets; `JWT_SECRET` is generated for you.
-`CLIENT_URL` can be a placeholder for now — you set the real value in step 7.
+(service `learncorp-api`, root directory `backend`). Fill in the prompted secrets (there is no signing secret to generate:
+sessions are random tokens kept in the database). `CLIENT_URL` can be a placeholder `https://` address for now — you set
+the real value in step 7. In production the API **refuses to start** without a valid `https://` `CLIENT_URL`, so a mistake
+shows up immediately in the logs rather than as a site where sign-in quietly fails.
 
 **Manual:** New → Web Service → Root Directory `backend` · Build Command `npm ci --include=dev && npm run build` ·
 Start Command `npm start` · Health Check Path `/health` · Node 22 · the variables from the table at the end.
@@ -70,6 +73,22 @@ When it is live, `https://<service>.onrender.com/health` returns `{"success":tru
 
 The free plan sleeps after ~15 minutes without traffic; the first request afterwards takes 30–60 s. Use the *Starter*
 plan (or an uptime pinger on `/health`) for a site people will actually visit.
+
+## 4a. Email (needed for author accounts)
+
+Author accounts confirm their address and recover passwords by email, so the API needs a way to send it. Without one,
+authors can register but cannot confirm their email, and therefore cannot submit manuscripts; the API logs a warning at
+start-up when `EMAIL_PROVIDER` is unset.
+
+- **Resend (recommended on Render's free tier, which blocks outbound SMTP):** create an account at resend.com, verify a
+  sending domain (or use their test address while developing), create an API key. Set `EMAIL_PROVIDER=resend`,
+  `RESEND_API_KEY`, and `EMAIL_FROM` (for example `LearnCorp Publication <no-reply@your-domain.com>`, an address on the
+  domain you verified).
+- **SMTP** (paid Render instance, or any host that allows it): `EMAIL_PROVIDER=smtp`, `EMAIL_FROM`, `SMTP_HOST`,
+  `SMTP_PORT` (587), `SMTP_SECURE` (`false` for 587, `true` for 465), `SMTP_USER`, `SMTP_PASS`.
+- `console` prints messages to the log and is **refused in production**: a reset link in a log is not a delivered email.
+
+Check it from the site: register a test author and look for the confirmation email.
 
 ## 5. Create the first admin
 
@@ -82,9 +101,15 @@ npm ci
 npm run seed:admin
 ```
 
-It will not overwrite an existing admin. Use a long, unique password and remove the `SEED_ADMIN_*` lines afterwards.
-There is no change-password screen yet; to reset, delete the user document in Atlas (Data Explorer → `users`) and run the
-seed again.
+The password must meet the same policy as every account (10+ characters, a letter and a number, not a common password):
+the script refuses anything weaker and never prints it. It will not overwrite an existing administrator and will never
+promote an existing author account. `SEED_ADMIN_ROLE=superadmin` (default) lets that account manage other administrators;
+use `admin` for a role that can't. Remove the `SEED_ADMIN_*` lines afterwards. There is no public admin sign-up: this
+script is the only way an administrator account is created.
+
+Afterwards the administrator changes their password and reviews their active sessions under **Account & security**. A
+forgotten admin password can be reset from `/forgot-password` (once email is configured); if email isn't set up yet,
+delete the user document in Atlas (Data Explorer → `users`) and run the seed again.
 
 ## 6. Frontend on Vercel
 
@@ -103,7 +128,10 @@ seed again.
 ## 7. Connect the two
 
 Render → service → **Environment** → set `CLIENT_URL` to the site's exact origin (for example
-`https://learncorp-publication-blond.vercel.app`, no trailing slash). Saving redeploys the API.
+`https://learncorp-publication-blond.vercel.app`, no trailing slash). Saving redeploys the API. It is used for three
+things: CORS, the CSRF origin check (a write from any other origin is refused with 403), and the links in emails. If the
+site answers on more than one address (the `*.vercel.app` URL and a custom domain), list them comma-separated; the first
+is the one used in emails.
 
 ## 8. Verify
 
@@ -112,15 +140,19 @@ Render → service → **Environment** → set `CLIENT_URL` to the site's exact 
 | 1 | API is up | `https://<service>.onrender.com/health` |
 | 2 | Site loads, logo and hero show | Open the site; View source: logo URLs look like `/_next/static/media/logo-mark.<hash>.webp`, and there is no `/_next/image` |
 | 3 | Proxy works | `https://<site>/api/books` returns JSON |
-| 4 | Admin login | `/admin/login`; DevTools → Application → Cookies: `bp_session` is **HttpOnly, Secure, SameSite=Strict** on the *site's* domain |
+| 4 | Admin login | `/admin/login`; DevTools → Application → Cookies: `bp_session` is **HttpOnly, Secure, SameSite=Strict** on the *site's* domain (an author's is SameSite=Lax); the dashboard opens, and an author opening `/admin/dashboard` is sent back to their own |
+| 4a | Author account | Register at `/register`, open the confirmation email, then submit a PDF on `/publish`; review it as the admin (request changes, accept, publish) and check the author sees each step on their dashboard |
+| 4b | Password recovery | `/forgot-password` → the email arrives → the link works once; afterwards the old password and old sessions no longer work |
 | 5 | Content + images | In the dashboard add an author and a book with a cover. The cover URL starts with `https://res.cloudinary.com/`; the public pages refresh within 2–5 minutes (they are cached) |
 | 6 | Manuscript upload | Submit a small PDF on `/publish`, then a PDF **over 5 MB**, then one close to 25 MB. The admin sees each and can download it through the signed link |
 | 7 | Rate-limit IPs | See below — do this once |
 | 8 | Forms | Contact form → appears under *Messages* |
 | 9 | SEO | `/sitemap.xml` lists books and authors; `/robots.txt`; paste the URL into a link-preview tool |
 
-**Not verified by the author of this repo (no real Vercel/Render/Atlas/R2 access):** items 2, 3, 4, 6 and 7 against the
-real services. Item 6 matters most — see *413 on large uploads* below.
+**Not verified by the author of this repo (no real Vercel/Render/Atlas/R2/email-provider access):** items 2, 3, 4, 4a, 4b, 6
+and 7 against the real services. Item 6 matters most — see *413 on large uploads* below. Item 4a depends on a working
+email provider and on Vercel's rewrite proxy forwarding the browser's `Origin` header unchanged (the CSRF check allows
+requests with no `Origin`, so a proxy that dropped it would not break sign-in, only weaken one layer).
 
 ### `TRUST_PROXY_HOPS` and the rate limiters
 
@@ -142,15 +174,16 @@ two devices share a bucket — set `TRUST_PROXY_HOPS=1` on Render and test again
 
 | Variable | Value / notes |
 |---|---|
-| `NODE_ENV` | `production` (also enables the `Secure` cookie flag) |
+| `NODE_ENV` | `production` (also enables the `Secure` cookie flag and refuses the `console` email provider) |
 | `PORT` | Provided by Render |
 | `TRUST_PROXY_HOPS` | `2` behind Vercel's proxy + Render; `1` if the API is reached directly |
-| `CLIENT_URL` | The site's exact origin |
+| `CLIENT_URL` | The site's exact `https://` origin (comma-separate several; first is used in emails). Required |
 | `MONGODB_URI` | Atlas connection string (step 1) |
-| `JWT_SECRET`, `JWT_EXPIRES_IN`, `COOKIE_NAME` | Generated secret · `7d` · `bp_session` |
+| `COOKIE_NAME` | `bp_session` (sessions are database-backed random tokens, so there is no JWT secret; a leftover `JWT_SECRET` from an earlier deployment is simply ignored) |
+| `EMAIL_PROVIDER`, `EMAIL_FROM`, `RESEND_API_KEY` or `SMTP_HOST`/`SMTP_PORT`/`SMTP_SECURE`/`SMTP_USER`/`SMTP_PASS` | Step 4a |
 | `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` | Step 2 |
 | `STORAGE_ENDPOINT`, `STORAGE_REGION`, `STORAGE_BUCKET`, `STORAGE_ACCESS_KEY_ID`, `STORAGE_SECRET_ACCESS_KEY`, `STORAGE_PUBLIC_BASE_URL` | Step 3 |
-| `SEED_ADMIN_NAME`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD` | Local `.env` only, used once by `npm run seed:admin` — don't put them on Render |
+| `SEED_ADMIN_NAME`, `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_ROLE` | Local `.env` only, used once by `npm run seed:admin` — don't put them on Render |
 
 **Frontend (Vercel)**
 
@@ -178,6 +211,21 @@ stored URL is not a valid Cloudinary URL (check the upload in the dashboard); no
 
 **Login works but the dashboard bounces back to the login page.** The cookie is not reaching the site. Confirm
 `NODE_ENV=production` on the API, that you are on HTTPS, and that `COOKIE_NAME` is the same on both sides.
+
+**Everyone was signed out after upgrading to accounts.** Expected once: the old stateless login cookies are not sessions in
+the new system. Administrators sign in again; their passwords are unchanged.
+
+**`403 Cross-site request blocked` on every form or sign-in.** The browser's `Origin` is not listed in `CLIENT_URL`
+(common after attaching a custom domain, or when using a Vercel preview URL). Add that origin, comma-separated.
+
+**The API will not start: `Invalid production configuration`.** `CLIENT_URL` is missing or not `https://`.
+
+**Authors register but never get the confirmation email.** Check the start-up log for the `EMAIL_PROVIDER` warning, then
+Render → Logs for `[email] … not delivered`. With Resend, the `EMAIL_FROM` address must be on a domain you have verified.
+Meanwhile an author can use *Send a new confirmation link* from their dashboard once the provider works.
+
+**Running more than one API instance.** The rate limiters count per process, so with N instances each address gets N times
+the limit. One instance (the default here) is exact; for more, back them with a shared store such as Redis.
 
 **Everyone gets 429.** `TRUST_PROXY_HOPS` is too low — see above.
 

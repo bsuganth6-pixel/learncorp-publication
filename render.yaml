@@ -21,14 +21,18 @@ services:
         value: production          # also turns on the Secure flag for the session cookie
       - key: TRUST_PROXY_HOPS
         value: "2"                 # Vercel's /api proxy + Render's load balancer; see docs/DEPLOYMENT.md before changing
-      - key: JWT_SECRET
-        generateValue: true
-      - key: JWT_EXPIRES_IN
-        value: 7d
       - key: COOKIE_NAME
         value: bp_session          # must match the frontend if you ever change it
+      # Email. Render's free tier blocks outbound SMTP, so the HTTP provider is the default. To use SMTP instead
+      # (paid instance), set EMAIL_PROVIDER=smtp and add SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS.
+      - key: EMAIL_PROVIDER
+        value: resend
       # ---- fill these in on the dashboard ------------------------------------------------
-      - key: CLIENT_URL            # your site's origin, e.g. https://learncorp-publication-blond.vercel.app
+      - key: CLIENT_URL            # your site's https origin, e.g. https://learncorp-publication-blond.vercel.app
+        sync: false                # (comma-separate more than one, first is used in emails). The API refuses to start without it.
+      - key: EMAIL_FROM            # e.g. LearnCorp Publication <no-reply@your-domain.com> (an address you have verified with the provider)
+        sync: false
+      - key: RESEND_API_KEY
         sync: false
       - key: MONGODB_URI
         sync: false

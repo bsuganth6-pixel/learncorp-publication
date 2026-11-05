@@ -2,7 +2,8 @@
 
 Guest -> register -> confirm email -> submit a manuscript -> admin review (changes requested) -> author
 resubmits -> admin accepts and publishes -> author sees the book live; plus ownership, role separation, the
-account page (profile, password, sessions), password recovery, sign-out, responsive overflow and axe-core.
+account page (profile, password, sessions), password recovery, sign-out and suspension.
+Responsive overflow and axe-core run in check_auth_layout_a11y.py.
 
 Needs the API started with `npm run dev:e2e` (it captures outgoing email at /__dev/outbox) and the production
 frontend, exactly as described in e2e/README.md. Creates data: restart the API before running it again.
@@ -363,45 +364,6 @@ with sync_playwright() as p:
     sign_in_author(page, AUTHOR_EMAIL, 'Fresh-Pass-4321')
     page.get_by_text('suspended').first.wait_for()
     check('and cannot sign back in', page.get_by_text('suspended').first.is_visible())
-
-    # ------------------------------------------------------------------ 13. responsive: no horizontal overflow on the new screens
-    author_ctx = new_ctx(); ap = author_ctx.new_page()
-    row.get_by_role('button', name='Reactivate').click()
-    admin.get_by_text('was reactivated').wait_for()
-    sign_in_author(ap, AUTHOR_EMAIL, 'Fresh-Pass-4321'); ap.wait_for_url('**/author/dashboard**')
-    guest_pages = ['/login', '/register', '/forgot-password', '/reset-password?token=x', '/verify-email', '/publish', '/']
-    author_pages = ['/author/dashboard', '/author/submissions', f'/author/submissions/{SUB_ID}', '/author/notifications', '/account', '/publish']
-    admin_pages = ['/admin/login', '/admin/dashboard', '/admin/dashboard/manuscripts', f'/admin/dashboard/manuscripts/{SUB_ID}', '/admin/dashboard/users', '/admin/dashboard/activity']
-    bad = []
-    for w, h in [(390, 844), (768, 1024), (1440, 900)]:
-        for pg, paths in [(page, guest_pages), (ap, author_pages), (admin, admin_pages)]:
-            pg.set_viewport_size({'width': w, 'height': h})
-            for path in paths:
-                if pg is page: guest_ctx.clear_cookies()
-                go(pg, path)
-                if overflow(pg) > 1: bad.append(f'{w}px {path} +{overflow(pg)}')
-        # one screenshot per width for the key new screens
-        go(page, '/login'); page.screenshot(path=f'{SHOTS}/login-{w}.png')
-        go(ap, '/author/dashboard'); ap.screenshot(path=f'{SHOTS}/author-dashboard-{w}.png')
-    check('no horizontal overflow on any new screen at 390 / 768 / 1440 px', not bad, '; '.join(bad[:6]))
-    # mobile menu for a signed-in author
-    ap.set_viewport_size({'width': 390, 'height': 844}); go(ap, '/author/dashboard')
-    ap.get_by_role('button', name='Open menu').click()
-    mm = ap.locator('#mobile-menu')
-    check('the signed-in mobile menu shows the account block and Sign out', mm.get_by_text('Asha V. Verma').is_visible() and mm.get_by_role('link', name='My submissions').is_visible() and mm.get_by_role('button', name='Sign out').is_visible())
-    ap.screenshot(path=f'{SHOTS}/auth-mobile-menu-author.png')
-    ap.set_viewport_size({'width': 1440, 'height': 900})
-
-    # ------------------------------------------------------------------ 14. accessibility (automated rules only)
-    if AXE.exists():
-        guest_ctx.clear_cookies()
-        for w, h in [(1280, 800), (390, 844)]:
-            page.set_viewport_size({'width': w, 'height': h}); ap.set_viewport_size({'width': w, 'height': h}); admin.set_viewport_size({'width': w, 'height': h})
-            for pg, paths in [(page, ['/login', '/register', '/forgot-password', '/reset-password?token=x', '/verify-email', '/publish']), (ap, author_pages), (admin, admin_pages)]:
-                for path in paths:
-                    go(pg, path); run_axe(pg, f'{w}px {path.split("?")[0]}', None)
-    else:
-        print('SKIP axe (frontend/node_modules/axe-core not found)')
 
     check('no uncaught page errors during the guest journey', not [e for e in console_errors if 'pageerror' in e or 'Uncaught' in e], '; '.join(console_errors[:3]))
     browser.close()
