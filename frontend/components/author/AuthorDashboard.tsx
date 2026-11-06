@@ -91,8 +91,8 @@ export default function AuthorDashboard() {
         <Stat label="Published" value={submissions ? count('Published') : null} />
       </dl>
 
-      <div className="mt-10 grid gap-10 lg:grid-cols-[3fr_2fr]">
-        <section aria-labelledby="recent-heading">
+      <div className="mt-10 grid gap-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <section aria-labelledby="recent-heading" className="min-w-0">
           <div className="flex items-center justify-between">
             <h2 id="recent-heading" className="font-display text-xl text-ink">Recent submissions</h2>
             <Link href="/author/submissions" className="inline-flex items-center gap-1 text-sm font-medium text-gold hover:underline">View all <ArrowRight size={14} aria-hidden="true" /></Link>
@@ -120,7 +120,7 @@ export default function AuthorDashboard() {
           </div>
         </section>
 
-        <section aria-labelledby="updates-heading">
+        <section aria-labelledby="updates-heading" className="min-w-0">
           <div className="flex items-center justify-between">
             <h2 id="updates-heading" className="font-display text-xl text-ink">Latest updates</h2>
             <Link href="/author/notifications" className="inline-flex items-center gap-1 text-sm font-medium text-gold hover:underline">All <ArrowRight size={14} aria-hidden="true" /></Link>

@@ -2,6 +2,9 @@
 
 Sets up its own accounts through the API (fast), then sweeps guest, author and admin screens.
 Needs the same stack as check_auth_flows.py (API via `npm run dev:e2e`, production frontend).
+
+PHASES (comma-separated, default all) splits the work into runs that each finish in a few minutes:
+  overflow | menu | axe-1280 | axe-390
 """
 import io, json, os, re, sys, time, urllib.request
 from pathlib import Path
@@ -13,6 +16,7 @@ AXE = ROOT / 'frontend' / 'node_modules' / 'axe-core' / 'axe.min.js'
 BASE = os.environ.get('BASE_URL', 'http://localhost:3055').rstrip('/')
 API = os.environ.get('API_URL', 'http://localhost:5055').rstrip('/')
 SHOTS = os.environ.get('SHOTS_DIR', str(ROOT / 'e2e' / '.shots')); Path(SHOTS).mkdir(parents=True, exist_ok=True)
+PHASES = os.environ.get('PHASES', 'overflow,menu,axe-1280,axe-390').split(',')
 H = {'X-Requested-With': 'LearnCorp'}
 PW = 'Sturdy-Pass-1234'
 STAMP = str(int(time.time()))
@@ -73,7 +77,7 @@ with sync_playwright() as p:
 
     # ---- no horizontal overflow at phone / tablet / desktop
     bad = []
-    for w, h in [(390, 844), (768, 1024), (1440, 900)]:
+    for w, h in ([(390, 844), (768, 1024), (1440, 900)] if 'overflow' in PHASES else []):
         for who, (c, paths) in pages.items():
             pg = c.new_page(); pg.set_viewport_size({'width': w, 'height': h})
             for path in paths:
@@ -83,20 +87,25 @@ with sync_playwright() as p:
             if who == 'author': go(pg, '/author/dashboard'); pg.screenshot(path=f'{SHOTS}/author-dashboard-{w}.png')
             if who == 'guest': go(pg, '/login'); pg.screenshot(path=f'{SHOTS}/login-{w}.png')
             pg.close()
-    check('no horizontal overflow on any screen at 390 / 768 / 1440 px', not bad, '; '.join(bad[:8]))
+    if 'overflow' in PHASES:
+        check('no horizontal overflow on any screen at 390 / 768 / 1440 px', not bad, '; '.join(bad[:8]))
 
     # ---- the signed-in mobile menu
-    pg = author.new_page(); pg.set_viewport_size({'width': 390, 'height': 844}); go(pg, '/author/dashboard')
-    pg.get_by_role('button', name='Open menu').click()
-    mm = pg.locator('#mobile-menu')
-    check('the signed-in mobile menu shows the account block, the author links and Sign out',
-          mm.get_by_text('Sweep Author').is_visible() and mm.get_by_role('link', name='My submissions').is_visible() and mm.get_by_role('button', name='Sign out').is_visible())
-    check('the mobile menu fits the screen (scrolls inside itself, not the page)', overflow(pg) <= 1 and pg.evaluate('() => document.body.style.overflow') == 'hidden')
-    pg.screenshot(path=f'{SHOTS}/auth-mobile-menu-author.png'); pg.close()
+    if 'menu' in PHASES:
+        pg = author.new_page(); pg.set_viewport_size({'width': 390, 'height': 844}); go(pg, '/author/dashboard')
+        pg.get_by_role('button', name='Open menu').click()
+        mm = pg.locator('#mobile-menu')
+        check('the signed-in mobile menu shows the account block, the author links and Sign out',
+              mm.get_by_text('Sweep Author').is_visible() and mm.get_by_role('link', name='My submissions').is_visible() and mm.get_by_role('button', name='Sign out').is_visible())
+        check('the mobile menu fits the screen (scrolls inside itself, not the page)', overflow(pg) <= 1 and pg.evaluate('() => document.body.style.overflow') == 'hidden')
+        pg.keyboard.press('Escape')
+        check('Escape closes it and puts keyboard focus back on the menu button', pg.locator('#mobile-menu').count() == 0 and pg.evaluate('() => document.activeElement && document.activeElement.getAttribute("aria-label")') == 'Open menu')
+        go(pg, '/author/dashboard'); pg.screenshot(path=f'{SHOTS}/auth-mobile-menu-author.png'); pg.close()
 
     # ---- accessibility (axe-core automated rules: WCAG 2.0/2.1 A + AA)
     if AXE.exists():
         for w, h in [(1280, 800), (390, 844)]:
+            if f'axe-{w}' not in PHASES: continue
             for who, (c, paths) in pages.items():
                 pg = c.new_page(); pg.set_viewport_size({'width': w, 'height': h})
                 for path in paths:

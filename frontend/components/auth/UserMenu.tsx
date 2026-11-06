@@ -68,21 +68,26 @@ export default function UserMenu({ user }: { user: AuthUser }) {
       <button
         ref={button}
         type="button"
-        aria-haspopup="menu"
         aria-expanded={open}
+        aria-controls="account-menu"
         aria-label={`Account menu for ${user.name}${unread ? `, ${unread} unread notifications` : ''}`}
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 text-ink hover:bg-ink/5"
       >
-        <span className="relative flex h-9 w-9 items-center justify-center rounded-full bg-ink text-xs font-semibold text-paper">
-          {initials(user.name)}
+        {/* The initials are decoration, drawn with CSS so they are not text content: the button's accessible name
+            (aria-label) already says who this is, and visible text that the name omitted would fail WCAG 2.5.3. */}
+        <span
+          aria-hidden="true"
+          data-initials={initials(user.name)}
+          className="relative flex h-9 w-9 items-center justify-center rounded-full bg-ink text-xs font-semibold text-paper before:content-[attr(data-initials)]"
+        >
           {unread > 0 && <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-paper bg-gold" aria-hidden="true" />}
         </span>
         <ChevronDown size={14} aria-hidden="true" className={open ? 'rotate-180 transition-transform' : 'transition-transform'} />
       </button>
 
       {open && (
-        <div role="menu" className="absolute right-0 top-full z-50 mt-2 w-72 rounded-sm border border-rule bg-surface py-2 shadow-lg">
+        <div id="account-menu" className="absolute right-0 top-full z-50 mt-2 w-72 rounded-sm border border-rule bg-surface py-2 shadow-lg">
           <div className="border-b border-rule px-4 pb-3 pt-1">
             <p className="truncate text-sm font-medium text-ink">{user.name}</p>
             <p className="truncate text-xs text-ink-soft">{user.email}</p>
@@ -92,7 +97,7 @@ export default function UserMenu({ user }: { user: AuthUser }) {
           </div>
           <div className="py-1">
             {menuItems(user).map(({ href, label, icon: Icon, ...rest }) => (
-              <Link key={href} href={href} role="menuitem" className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink hover:bg-ink/5">
+              <Link key={href} href={href} className="flex items-center gap-3 px-4 py-2.5 text-sm text-ink hover:bg-ink/5">
                 <Icon size={16} className="text-ink-soft" aria-hidden="true" />
                 <span className="flex-1">{label}</span>
                 {'badge' in rest && rest.badge ? <span className="rounded-full bg-gold px-2 py-0.5 text-xs font-medium text-white">{rest.badge}</span> : null}
@@ -100,7 +105,7 @@ export default function UserMenu({ user }: { user: AuthUser }) {
             ))}
           </div>
           <div className="border-t border-rule pt-1">
-            <button type="button" role="menuitem" onClick={onSignOut} className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-ink hover:bg-ink/5">
+            <button type="button" onClick={onSignOut} className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-ink hover:bg-ink/5">
               <LogOut size={16} className="text-ink-soft" aria-hidden="true" />
               Sign out
             </button>

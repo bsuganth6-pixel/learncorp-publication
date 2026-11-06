@@ -12,6 +12,7 @@ import AdminPager from '@/components/admin/AdminPager';
 import Alert from '@/components/ui/Alert';
 import Badge from '@/components/ui/Badge';
 import EmptyState from '@/components/ui/EmptyState';
+import TableScroller from '@/components/admin/TableScroller';
 
 const ROLE_LABEL = { author: 'Author', admin: 'Administrator', superadmin: 'Super admin' } as const;
 
@@ -150,7 +151,7 @@ export default function AdminUsersPage() {
       ) : users.length === 0 && !error ? (
         <EmptyState title="No accounts match" />
       ) : (
-        <div className="overflow-x-auto rounded-sm border border-rule bg-surface">
+        <TableScroller label="Accounts">
           <table className="w-full min-w-[900px] text-left text-sm">
             <thead className="border-b border-rule bg-ink/5 text-xs uppercase tracking-wide text-ink-soft">
               <tr>
@@ -168,7 +169,7 @@ export default function AdminUsersPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableScroller>
       )}
 
       <AdminPager page={page} pages={pages} onChange={setPage} />

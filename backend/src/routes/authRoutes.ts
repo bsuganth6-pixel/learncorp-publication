@@ -19,6 +19,12 @@ import { objectId } from '../validators/common';
 
 const router = Router();
 
+// Sign-in, sign-up and recovery responses set or clear credentials: never cacheable.
+router.use((_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
+
 // Public
 router.post('/register', registerLimiter, validate(registerSchema), register);
 router.post('/login', loginLimiter, loginEmailLimiter, validate(loginSchema), login);

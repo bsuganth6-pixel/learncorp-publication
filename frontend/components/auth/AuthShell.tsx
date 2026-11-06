@@ -41,7 +41,7 @@ export default function AuthShell({
           </ul>
         </div>
 
-        <p className="text-xs text-paper/50">© {new Date().getFullYear()} LearnCorp Publication</p>
+        <p className="text-xs text-paper/60">© {new Date().getFullYear()} LearnCorp Publication</p>
       </aside>
 
       <div className="flex min-h-screen flex-col bg-paper">

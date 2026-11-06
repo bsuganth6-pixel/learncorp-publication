@@ -26,6 +26,8 @@ export const protect = asyncHandler(async (req: Request, _res: Response, next: N
 
   req.user = resolved.user;
   req.authSession = resolved.session;
+  // Whatever this request returns is about one signed-in person: no browser or shared cache may keep it.
+  _res.setHeader('Cache-Control', 'private, no-store');
   next();
 });
 

@@ -69,7 +69,7 @@ export default function LoginForm() {
           <input type="checkbox" className="mt-0.5" {...register('rememberMe')} />
           <span>
             Keep me signed in
-            <span className="block text-xs text-ink-soft/80">For up to 30 days. Not on shared computers.</span>
+            <span className="block text-xs text-ink-soft">For up to 30 days. Not on shared computers.</span>
           </span>
         </label>
         <Link href="/forgot-password" className="shrink-0 text-sm font-medium text-gold hover:underline">Forgot password?</Link>

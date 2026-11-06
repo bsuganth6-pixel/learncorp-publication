@@ -312,7 +312,7 @@ with sync_playwright() as p:
 
     # ------------------------------------------------------------------ 10. sign out
     page.get_by_role('button', name=re.compile('Account menu')).click()
-    page.get_by_role('menuitem', name='Sign out').click()
+    page.get_by_role('button', name='Sign out').click()
     page.wait_for_url(BASE + '/')
     page.get_by_role('link', name='Log in').first.wait_for()
     check('signing out returns to the guest header', page.get_by_role('link', name='Log in').first.is_visible() and page.get_by_role('button', name=re.compile('Account menu')).count() == 0)

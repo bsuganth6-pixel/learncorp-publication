@@ -27,6 +27,7 @@ export default function Header() {
   const [open, setOpen] = useState(false);
   const [booksOpen, setBooksOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
   const booksRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,7 +40,11 @@ export default function Header() {
     if (!open) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setOpen(false);
+      menuButtonRef.current?.focus(); // keyboard users land back where they opened it
+    };
     document.addEventListener('keydown', onKey);
     panelRef.current?.querySelector<HTMLElement>('a, button')?.focus();
     return () => {
@@ -169,6 +174,7 @@ export default function Header() {
           </div>
 
           <button
+            ref={menuButtonRef}
             type="button"
             aria-label={open ? 'Close menu' : 'Open menu'}
             aria-expanded={open}

@@ -11,6 +11,7 @@ import AdminPager from '@/components/admin/AdminPager';
 import Badge from '@/components/ui/Badge';
 import EmptyState from '@/components/ui/EmptyState';
 import { formatPrice } from '@/lib/utils';
+import TableScroller from '@/components/admin/TableScroller';
 
 const PAGE_SIZE = 20;
 
@@ -58,7 +59,7 @@ export default function AdminBooksPage() {
       ) : books.length === 0 ? (
         <EmptyState title="No books yet" description="Add your first book to populate the catalogue." />
       ) : (
-        <div className="overflow-x-auto rounded-sm border border-rule bg-surface">
+        <TableScroller label="Books">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-rule bg-ink/5 text-xs uppercase tracking-wide text-ink-soft">
               <tr>
@@ -110,7 +111,7 @@ export default function AdminBooksPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableScroller>
       )}
 
       <AdminPager page={page} pages={pages} onChange={setPage} />

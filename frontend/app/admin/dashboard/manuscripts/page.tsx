@@ -13,6 +13,7 @@ import EmptyState from '@/components/ui/EmptyState';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { MANUSCRIPT_STATUSES } from '@/lib/constants';
 import { formatDate } from '@/lib/utils';
+import TableScroller from '@/components/admin/TableScroller';
 
 export default function AdminManuscriptsPage() {
   const [manuscripts, setManuscripts] = useState<Manuscript[] | null>(null);
@@ -52,7 +53,7 @@ export default function AdminManuscriptsPage() {
       ) : manuscripts.length === 0 && !error ? (
         <EmptyState title="No manuscripts here" />
       ) : (
-        <div className="overflow-x-auto rounded-sm border border-rule bg-surface">
+        <TableScroller label="Manuscripts">
           <table className="w-full min-w-[820px] text-left text-sm">
             <thead className="border-b border-rule bg-ink/5 text-xs uppercase tracking-wide text-ink-soft">
               <tr>
@@ -92,7 +93,7 @@ export default function AdminManuscriptsPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </TableScroller>
       )}
 
       <AdminPager page={page} pages={pages} onChange={setPage} />

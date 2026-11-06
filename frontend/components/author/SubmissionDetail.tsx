@@ -104,8 +104,8 @@ export default function SubmissionDetail({ id }: { id: string }) {
         ))}
       </dl>
 
-      <div className="mt-8 grid gap-10 lg:grid-cols-[3fr_2fr]">
-        <div className="space-y-8">
+      <div className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="min-w-0 space-y-8 break-words">
           <section>
             <h2 className="font-display text-lg text-ink">Book description</h2>
             <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-ink-soft">{submission.description}</p>
@@ -137,7 +137,7 @@ export default function SubmissionDetail({ id }: { id: string }) {
           </section>
         </div>
 
-        <section aria-labelledby="history-heading">
+        <section aria-labelledby="history-heading" className="min-w-0">
           <h2 id="history-heading" className="font-display text-lg text-ink">Progress</h2>
           <div className="mt-4"><StatusTimeline events={submission.history} /></div>
         </section>
