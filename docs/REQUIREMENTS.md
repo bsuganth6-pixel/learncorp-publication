@@ -9,12 +9,12 @@ Checked against `BOOK PUBLICATION - Website.pdf` (sections 1–25) and the Phase
 | ⚠️ | Partly done, or deliberately different from the spec — the note says how. |
 | ❌ | Not done. |
 
-**What "exercised" covers.** Backend: 196 Jest unit tests, plus **115 integration tests that run the real Express app
+**What "exercised" covers.** Backend: 198 Jest unit tests, plus **118 integration tests that run the real Express app
 against a real MongoDB-compatible database** (accounts, sessions, RBAC, ownership, the manuscript workflow). Frontend:
-92 unit tests, typecheck, lint, production build. Browser: Playwright/Chromium against `next start` + the real API on a
+99 unit tests, typecheck, lint, production build. Browser: Playwright/Chromium against `next start` + the real API on a
 real database (`e2e/`): the **whole account journey in 72 checks** (register → confirm email → submit → admin review →
 resubmit → accept → publish → the book in the catalogue; ownership and role separation; account page; password
-recovery; suspension), @@SWEEP@@ and the earlier public/admin checks (9 pages at 3 widths, images, sitemap/robots,
+recovery; suspension), a layout and accessibility sweep of 20 new screens (no horizontal overflow at 390, 768 and 1440 px; the signed-in mobile menu; axe-core WCAG 2.0/2.1 A + AA at 1280 and 390 px: 0 violations; 44 checks), and the earlier public/admin checks (9 pages at 3 widths, images, sitemap/robots,
 hostile queries). **Not covered:** real email delivery, Cloudinary, S3/R2, Atlas, Vercel or Render (the development
 database was a MongoDB-compatible server, not MongoDB, and is not atomic under concurrent writes); Firefox, Safari, real
 phones; Lighthouse; a penetration test.
@@ -180,7 +180,7 @@ and could be abused); `page=-3` and similar returned 500s.
 
 ## 20 · Technology stack
 
-✅ Next.js 15.5 / React 19 / Tailwind 3.4 · Node 22 + Express 4 · MongoDB via Mongoose 8 · JWT in a secure cookie ·
+✅ Next.js 15.5 / React 19 / Tailwind 3.4 · Node 22 + Express 4 · MongoDB via Mongoose 8 · server-side sessions in a secure cookie ·
 Cloudinary + S3/R2 storage · Vercel (frontend) + Render (API) + Atlas. No deviation needing approval.
 
 ## 21 · GitHub
@@ -228,7 +228,7 @@ Marks as above. The specification section is quoted by its lettered headings.
 | **A. Roles**: guest, author, admin with RBAC | ✅ | Roles enforced by the API on every request (`middleware/auth.ts`); a test per admin-only route proves guests get 401 and authors 403, and that admins cannot use author-only routes. Browser: an author sent away from `/admin/dashboard`, an admin away from `/author`. |
 | A. Author: register, profile, submit with files, own submissions, status tracking, feedback, resubmit, notifications | ✅ | `manuscripts.int.test.ts`, `auth.int.test.ts`; browser journey. |
 | A. Admin: secure login, protected dashboard, manage books/authors, review, approve/reject, request changes, publish, manage users, messages, testimonials, activity logs | ✅ | `admin.int.test.ts`, `manuscripts.int.test.ts`; browser journey. |
-| **B. Pages**: login, registration, forgot, reset, email verification, profile — navy/gold/white | ✅ | `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email`, `/account`. @@A11Y@@ |
+| **B. Pages**: login, registration, forgot, reset, email verification, profile — navy/gold/white | ✅ | `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify-email`, `/account`. No horizontal overflow at 390 / 768 / 1440 px; axe-core: 0 violations at 1280 and 390 px. |
 | **C. Registration**: fields, email validation, duplicates, strength, Argon2id/bcrypt, verify before sensitive operations, default author, never self-assign admin | ✅ | bcrypt cost 12 (Argon2id would need a native module; the spec allows either, and bcrypt keeps every existing hash valid). Submitting is blocked until the email is confirmed. A request carrying `role: superadmin` creates an author (test). |
 | **D. Login**: validation, errors, visibility toggle, remember-me, rate limiting, sessions, logout, expiry/revocation | ✅ | Remember-me = a longer server session (30 days / 14 idle) in a persistent cookie, authors only. Limits: 10 failures/15 min per IP and 8 per account (admin 6 and 5). |
 | **E. Forgot/reset**: secure single-use token, emailed, hash stored, expiry, validate, invalidate, revoke sessions, never reveal registration | ✅ | 30-minute tokens, SHA-256 stored, consumed atomically; identical response and timing for any address; all sessions revoked; a "password changed" notice is emailed. Real email delivery 🔶. |

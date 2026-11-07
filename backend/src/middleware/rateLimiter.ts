@@ -41,4 +41,10 @@ export const passwordChangeLimiter = limiter({ windowMs: 15 * MINUTE, limit: 8, 
 
 // ---- Unchanged from before ----
 export const formLimiter = limiter({ windowMs: 60 * MINUTE, limit: 8, message: reply('Too many submissions. Please try again later.') });
-export const apiLimiter = limiter({ windowMs: 15 * MINUTE, limit: 300 });
+// A coarse per-IP ceiling for the whole API. Signed-in pages make several calls each and a campus or office can share
+// one address, so the default is generous; the endpoints that matter (sign-in, sign-up, recovery) have their own tight limits.
+const DEFAULT_API_LIMIT = 1000;
+export const apiLimiter = limiter({
+  windowMs: 15 * MINUTE,
+  limit: () => Number(process.env.API_RATE_LIMIT) || DEFAULT_API_LIMIT,
+});

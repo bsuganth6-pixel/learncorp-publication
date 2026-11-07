@@ -1,16 +1,12 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { getMe, logout as apiLogout, UNAUTHORIZED_EVENT } from './api-client';
+import { getMe, logout as apiLogout, ApiClientError, UNAUTHORIZED_EVENT } from './api-client';
+import { stateAfterLookupFailure, type AuthState } from './auth-state';
 import type { AuthUser } from './types';
 
 /** Readable companion cookie the API sets on sign-in ("author" | "admin"). Only a hint to skip a pointless request. */
 export const AUTH_HINT_COOKIE = 'bp_auth';
-
-type AuthState =
-  | { status: 'loading'; user: null }
-  | { status: 'guest'; user: null }
-  | { status: 'authenticated'; user: AuthUser };
 
 interface AuthContextValue {
   state: AuthState;
@@ -34,8 +30,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data } = await getMe();
       setState({ status: 'authenticated', user: data });
       return data;
-    } catch {
-      setState({ status: 'guest', user: null });
+    } catch (err) {
+      const status = err instanceof ApiClientError ? err.status : 0;
+      setState((previous) => stateAfterLookupFailure(previous, status));
       return null;
     }
   }, []);

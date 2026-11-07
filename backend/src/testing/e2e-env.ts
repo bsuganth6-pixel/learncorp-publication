@@ -3,3 +3,4 @@ process.env.CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:3055';
 process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 process.env.EMAIL_PROVIDER = 'console';
 process.env.EMAIL_CAPTURE = '1'; // emails go to /__dev/outbox instead of being printed
+process.env.API_RATE_LIMIT = process.env.API_RATE_LIMIT || '1000000'; // every browser test comes from one IP

@@ -197,6 +197,29 @@ two devices share a bucket — set `TRUST_PROXY_HOPS=1` on Render and test again
 
 Add it in Vercel (Settings → Domains), set `NEXT_PUBLIC_SITE_URL` to it, update `CLIENT_URL` on Render, redeploy both.
 
+## Upgrading an existing deployment to author accounts
+
+For a site already running the earlier (admin-only, JWT) version. Do these in order; the API change and the frontend
+change ship together, so deploy both before testing.
+
+1. **Back up** the Atlas database (Atlas → Backup, or `mongodump`). The upgrade only *adds* fields and collections, but
+   it is a good habit before any release.
+2. **Choose an email provider** (§4a) and have its API key and a verified sender address ready.
+3. **Render → Environment** — set `CLIENT_URL` (the site's exact `https://` origin: the API now refuses to start without
+   it), `EMAIL_PROVIDER`, `EMAIL_FROM` and `RESEND_API_KEY` (or the `SMTP_*` set). `JWT_SECRET` and `JWT_EXPIRES_IN` are no
+   longer used; you can delete them.
+4. **Deploy** the API and the frontend (push to the branch both services watch).
+5. **What happens to existing data, automatically at API start-up:** existing user documents (your administrators) get
+   `status: active` and are treated as email-confirmed; their passwords, roles and the bcrypt hashes are untouched.
+   Existing manuscripts stay as they were (they simply have no author account attached; the admin list marks them
+   *No account*). TTL indexes are added to the new `sessions` and `authtokens` collections so expired rows clear themselves.
+6. **Expect one sign-out.** The old login cookies are not sessions in the new system, so administrators sign in again,
+   through `/admin/login`, with the same password. The public `/login` is for authors only.
+7. **Check** the table in "Verify the deployment" — especially 4, 4a and 4b — then register a test author, confirm the
+   email, and walk one submission through review and publishing.
+8. **Rollback:** redeploy the previous commit. The new fields are ignored by the old code and the old login cookie format
+   is unaffected, so nothing needs undoing in the database.
+
 ## Troubleshooting
 
 **The live site does not change after a push.** Vercel keeps serving the last *successful* deployment. Open Vercel →
@@ -208,6 +231,11 @@ book covers and author photos should be `res.cloudinary.com/…/f_auto,q_auto,c_
 stored URL is not a valid Cloudinary URL (check the upload in the dashboard); non-Cloudinary URLs are served as-is.
 
 **`/api/*` returns 502/504.** The API is asleep or crashed: open `/health`, then Render → Logs. On the free plan allow a minute.
+
+**The author or admin area shows an error on the first visit after a quiet spell.** Those pages ask the API who you are
+before they render, and a Vercel function stops waiting after about 10 seconds, shorter than a free-tier cold start. Reload
+once the API is awake, and for a real launch keep it warm (an uptime monitor requesting `/health` every 10 minutes) or use
+the Render *Starter* instance.
 
 **Login works but the dashboard bounces back to the login page.** The cookie is not reaching the site. Confirm
 `NODE_ENV=production` on the API, that you are on HTTPS, and that `COOKIE_NAME` is the same on both sides.
