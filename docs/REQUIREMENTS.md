@@ -11,7 +11,7 @@ Checked against `BOOK PUBLICATION - Website.pdf` (sections 1–25) and the Phase
 
 **What "exercised" covers.** Backend: 198 Jest unit tests, plus **118 integration tests that run the real Express app
 against a real MongoDB-compatible database** (accounts, sessions, RBAC, ownership, the manuscript workflow). Frontend:
-99 unit tests, typecheck, lint, production build. Browser: Playwright/Chromium against `next start` + the real API on a
+104 unit tests, typecheck, lint, production build. Browser: Playwright/Chromium against `next start` + the real API on a
 real database (`e2e/`): the **whole account journey in 72 checks** (register → confirm email → submit → admin review →
 resubmit → accept → publish → the book in the catalogue; ownership and role separation; account page; password
 recovery; suspension), a layout and accessibility sweep of 20 new screens (no horizontal overflow at 390, 768 and 1440 px; the signed-in mobile menu; axe-core WCAG 2.0/2.1 A + AA at 1280 and 390 px: 0 violations; 44 checks), and the earlier public/admin checks (9 pages at 3 widths, images, sitemap/robots,
@@ -260,4 +260,4 @@ not deployed.
 4. Decide on the featured-book card fields (§2).
 5. Test on Firefox, Safari and real phones; run Lighthouse.
 6. Commission a vector master of the logo (§1).
-7. Add a Content-Security-Policy; move the frontend to zod 4; consider MFA for administrators; decide what the homepage "book previews" should be (§ Phase 4A, item 2).
+7. Add a full Content-Security-Policy (`frontend/vercel.json` already sets the parts that cannot break the site: framing, `base-uri`, `form-action`, `object-src`; a strict `script-src` needs per-request nonces and has to allow the contact-page map); move the frontend to zod 4; consider MFA for administrators; decide what the homepage "book previews" should be (§ Phase 4A, item 2).

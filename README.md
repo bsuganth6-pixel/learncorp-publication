@@ -10,7 +10,7 @@ authors, accounts, messages and testimonials. Built to the project specification
 Code-complete against the spec, with the gaps listed in [`docs/REQUIREMENTS.md`](docs/REQUIREMENTS.md).
 
 - **Verified** (sandbox): 198 backend unit tests, **118 backend integration tests that run the real app against a real
-  MongoDB-compatible database** (authentication, sessions, RBAC, ownership, the manuscript workflow), 99 frontend tests,
+  MongoDB-compatible database** (authentication, sessions, RBAC, ownership, the manuscript workflow), 104 frontend tests,
   typecheck, lint, production build, and browser checks in headless Chromium against the production build — including
   the whole account journey against that database ([`e2e/`](e2e/README.md)).
 - **Not verified**: real email delivery, Cloudinary, S3/R2, Atlas, Vercel or Render (the development database was a
@@ -67,7 +67,7 @@ cookie first-party. Why the API is not a Vercel Function: [`docs/DEPLOYMENT.md`]
 
 ```
 backend/     Express + Mongoose API (TypeScript) and its Jest tests
-frontend/    Next.js app: app/ (routes), components/, lib/ (API client, config, helpers), assets/brand/
+frontend/    Next.js app: app/ (routes), components/, lib/ (API client, config, helpers), assets/brand/, vercel.json (Vercel build, region and response headers)
 brand/       Logo kit, usage notes, and the script that regenerates it
 docs/        API.md · DEPLOYMENT.md · REQUIREMENTS.md · SECURITY.md
 e2e/         Browser checks (Playwright, Python)

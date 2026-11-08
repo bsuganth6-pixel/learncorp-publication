@@ -116,7 +116,9 @@ delete the user document in Atlas (Data Explorer → `users`) and run the seed a
 1. **Add New → Project** → import the GitHub repository.
 2. **Framework Preset: Next.js · Root Directory: `frontend`** · Node.js Version 22.x.
    If this Vercel project was created earlier with the *Services* preset, change both under Settings → Build and
-   Deployment. There must be **no `vercel.json` at the repository root** (this repo no longer has one).
+   Deployment. The repository's only `vercel.json` is `frontend/vercel.json`, which Vercel reads because the Root
+   Directory is `frontend`. There must be **no `vercel.json` at the repository root**: the earlier root file ran the Express
+   API as a Vercel Function, which caps request bodies at 4.5 MB, below the 25 MB manuscript limit.
 3. **Environment Variables** — add to **Production and Preview**:
    - `API_ORIGIN` = `https://<service>.onrender.com` (no trailing slash, no `/api`).
      **Required at build time: the build deliberately fails without it**, so you never ship a site whose login and forms
@@ -124,6 +126,20 @@ delete the user document in Atlas (Data Explorer → `users`) and run the seed a
    - `NEXT_PUBLIC_SITE_URL` — optional. Without it the site uses its production `*.vercel.app` hostname for canonical
      URLs, the sitemap and link previews. Set it when you attach a custom domain.
 4. Deploy.
+
+**What `frontend/vercel.json` sets** (a unit test keeps it consistent with `render.yaml`):
+
+| Key | Why |
+|---|---|
+| `framework`, `installCommand: npm ci`, `buildCommand` | Explicit, so a dashboard setting cannot drift. `npm ci` installs exactly what `package-lock.json` says and fails if it is out of date |
+| `regions: ["sin1"]` | Runs the server-rendered pages in **Singapore**, next to the API (`region: singapore` in `render.yaml`). Vercel's default is Washington, D.C.; the author and admin pages call the API while rendering, so a far-away function adds a long round trip to every one. If you move the API, change this to match (Hobby plans allow one region) |
+| `headers` on every path | `X-Content-Type-Options: nosniff` · no framing (`X-Frame-Options: DENY` and CSP `frame-ancestors 'none'`) · `base-uri` and `form-action` pinned to the site · `object-src 'none'` · camera, microphone, location and payment off |
+
+Deliberately **not** in this file: the `/api` proxy (it lives in `next.config.js` because it reads `API_ORIGIN` from the
+environment, which `vercel.json` cannot), environment variables (the dashboard only), HSTS (Vercel adds it), and
+`Referrer-Policy` (`next.config.js` sets `no-referrer` on the pages whose URL carries a one-time token). It is also not a full
+Content-Security-Policy: the contact page embeds a map, and a strict `script-src` for Next.js needs per-request nonces,
+which is separate work (see `REQUIREMENTS.md`, open items).
 
 ## 7. Connect the two
 
@@ -233,9 +249,10 @@ stored URL is not a valid Cloudinary URL (check the upload in the dashboard); no
 **`/api/*` returns 502/504.** The API is asleep or crashed: open `/health`, then Render → Logs. On the free plan allow a minute.
 
 **The author or admin area shows an error on the first visit after a quiet spell.** Those pages ask the API who you are
-before they render, and a Vercel function stops waiting after about 10 seconds, shorter than a free-tier cold start. Reload
-once the API is awake, and for a real launch keep it warm (an uptime monitor requesting `/health` every 10 minutes) or use
-the Render *Starter* instance.
+before they render and wait up to 20 seconds for the answer (`lib/server-auth.ts`), which is shorter than a free-tier cold
+start (30–60 seconds). Vercel projects created before April 2025, without Fluid compute, also stop a function after 10
+seconds by default. Reload once the API is awake, and for a real launch keep it warm (an uptime monitor requesting
+`/health` every 10 minutes) or use the Render *Starter* instance.
 
 **Login works but the dashboard bounces back to the login page.** The cookie is not reaching the site. Confirm
 `NODE_ENV=production` on the API, that you are on HTTPS, and that `COOKIE_NAME` is the same on both sides.

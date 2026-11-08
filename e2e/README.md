@@ -8,6 +8,7 @@ so the scripts can follow confirmation and reset links).
 |---|---|
 | `check_auth_flows.py` | The whole account journey: guest navigation and route guards; registration (live password rules, duplicate email); email confirmation; submitting a manuscript with files; another author cannot reach it; an author cannot approve anything; admin sign-in is separate; editorial review (changes requested), the author's resubmission, accept and publish, the book appearing in the catalogue; account page (profile, password, sessions, ending another device); password recovery; sign-out; suspension takes effect at once |
 | `check_auth_layout_a11y.py` | The new guest, author and admin screens at 390 / 768 / 1440 px have no horizontal overflow; the signed-in mobile menu; axe-core (WCAG 2.0/2.1 A and AA) on every one of them at 1280 and 390 px |
+| `check_vercel_headers.py` | Adds the real response headers from `frontend/vercel.json` to every response in Chromium (Vercel applies them at its edge, which a local server does not), then walks public, sign-in, author and admin screens and the main forms: no Content-Security-Policy violation, no page error, registration / search / sign-out / admin sign-in all still work, and a third-party map iframe is not blocked |
 | `check_images_and_layout.py` | Header, hero and admin logos load and come from `/_next/static/media`; nothing is requested from `/_next/image`; no failed requests; 9 pages × 390/768/1440 px have no horizontal overflow and no broken images; admin login through the `/api` proxy; Cloudinary covers are requested as width-specific URLs |
 | `check_accessibility.py` | axe-core on the public pages, a book page, an author page and the admin login, at 1280 and 390 px. Automated rules only — they catch roughly a third of real accessibility problems; they do not replace keyboard and screen-reader testing |
 | `check_admin_and_seo.py` | Sitemap, robots, Open Graph image and icons; hostile query strings return 200/400, never 500; the five admin lists load; admin pagination |
@@ -31,6 +32,7 @@ API_ORIGIN=http://localhost:5055 NEXT_PUBLIC_SITE_URL=http://localhost:3055 npx 
 # 3. Checks, in a third terminal (restart step 1 between runs of the scripts that create data)
 python e2e/check_auth_flows.py
 python e2e/check_auth_layout_a11y.py
+python e2e/check_vercel_headers.py
 python e2e/check_images_and_layout.py
 python e2e/check_admin_and_seo.py
 python e2e/check_accessibility.py      # needs `npm ci` in frontend/ (uses its axe-core)
